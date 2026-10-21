@@ -1,0 +1,2186 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Rocket Builder Coding Adventure</title>
+  <!-- Google Fonts: Quicksand for cute preschool aesthetic -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Quicksand', 'sans-serif'],
+          },
+          colors: {
+            space: {
+              900: '#0B0D1B',
+              800: '#141836',
+              700: '#1D2352',
+              card: 'rgba(28, 34, 76, 0.88)'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      font-family: 'Quicksand', sans-serif;
+    }
+
+    body {
+      background-color: #0B0D1B;
+      color: #F8FAFC;
+      overflow-x: hidden;
+      margin: 0;
+      padding: 0;
+      touch-action: manipulation;
+    }
+
+    /* Chunky physical tactile buttons */
+    .btn-chunky {
+      position: relative;
+      border-radius: 1.25rem;
+      font-weight: 700;
+      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 8px 0 rgba(0, 0, 0, 0.28), 0 12px 20px rgba(0, 0, 0, 0.35);
+      cursor: pointer;
+    }
+    .btn-chunky:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 0 rgba(0, 0, 0, 0.28), 0 16px 24px rgba(0, 0, 0, 0.4);
+    }
+    .btn-chunky:active {
+      transform: translateY(6px);
+      box-shadow: 0 2px 0 rgba(0, 0, 0, 0.28), 0 6px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn-pink { background: linear-gradient(180deg, #FF6584 0%, #E83E65 100%); color: white; border: 3px solid #FFA3B5; }
+    .btn-cyan { background: linear-gradient(180deg, #38EF7D 0%, #11998E 100%); color: white; border: 3px solid #82F7B5; }
+    .btn-blue { background: linear-gradient(180deg, #3A7BD5 0%, #255BB5 100%); color: white; border: 3px solid #7EADFF; }
+    .btn-yellow { background: linear-gradient(180deg, #FFD200 0%, #F7971E 100%); color: #422006; border: 3px solid #FFE779; }
+    .btn-purple { background: linear-gradient(180deg, #A855F7 0%, #7E22CE 100%); color: white; border: 3px solid #D8B4FE; }
+    .btn-coral { background: linear-gradient(180deg, #FF7E5F 0%, #FEB47B 100%); color: white; border: 3px solid #FFBE98; }
+
+    /* Animated background glow */
+    @keyframes floatGentle {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-8px) rotate(1.5deg); }
+    }
+    .floating-anim {
+      animation: floatGentle 4s ease-in-out infinite;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.6)); }
+      50% { filter: drop-shadow(0 0 22px rgba(255, 215, 0, 0.95)); }
+    }
+    .glow-anim {
+      animation: pulseGlow 2.5s infinite ease-in-out;
+    }
+
+    @keyframes blinkPartHighlight {
+      0%, 100% {
+        box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.4), 0 8px 0 rgba(0, 0, 0, 0.28);
+        border-color: #38BDF8;
+        transform: scale(1);
+      }
+      50% {
+        box-shadow: 0 0 20px 8px rgba(56, 189, 248, 0.85), 0 10px 0 rgba(0, 0, 0, 0.28);
+        border-color: #FACC15;
+        transform: scale(1.06);
+      }
+    }
+    .part-blinking {
+      animation: blinkPartHighlight 1.3s ease-in-out infinite !important;
+      z-index: 10;
+    }
+
+    /* Command Tray Retraction */
+    .tray-slide {
+      transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease;
+    }
+    .tray-hidden {
+      transform: translateY(115%);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Smooth parallax world camera */
+    #worldViewport {
+      transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="bg-space-900 min-h-screen flex flex-col justify-between items-center relative overflow-hidden select-none">
+
+  <!-- Background Animated Master Space Diorama SVG -->
+  <div class="fixed inset-0 w-full h-full pointer-events-none z-0 overflow-hidden">
+    <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" class="w-full h-full">
+      <defs>
+        <radialGradient id="spaceGradient" cx="50%" cy="30%" r="80%">
+          <stop offset="0%" stop-color="#1B1E47"/>
+          <stop offset="60%" stop-color="#0E112A"/>
+          <stop offset="100%" stop-color="#060714"/>
+        </radialGradient>
+        <radialGradient id="nebulaPink" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#FF5D9E" stop-opacity="0.25"/>
+          <stop offset="100%" stop-color="#1B1E47" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="nebulaCyan" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#00F2FE" stop-opacity="0.2"/>
+          <stop offset="100%" stop-color="#1B1E47" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="gridLineGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#4F46E5" stop-opacity="0.1"/>
+          <stop offset="100%" stop-color="#060714" stop-opacity="0.8"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Deep Space BG -->
+      <rect width="1440" height="900" fill="url(#spaceGradient)"/>
+
+      <!-- Glowing Nebulae -->
+      <circle cx="280" cy="220" r="320" fill="url(#nebulaPink)"/>
+      <circle cx="1200" cy="450" r="380" fill="url(#nebulaCyan)"/>
+
+      <!-- Animated Gentle Stars -->
+      <g>
+        <circle cx="180" cy="140" r="3.5" fill="#FFF">
+          <animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite"/>
+          <animate attributeName="r" values="3;4.5;3" dur="3s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="360" cy="90" r="2.5" fill="#FDE047">
+          <animate attributeName="opacity" values="0.8;0.2;0.8" dur="4s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="560" cy="200" r="3" fill="#A5F3FC">
+          <animate attributeName="opacity" values="0.2;0.9;0.2" dur="2.7s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="890" cy="110" r="4" fill="#F472B6">
+          <animate attributeName="opacity" values="0.4;1;0.4" dur="3.4s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="1120" cy="180" r="2.5" fill="#FFF">
+          <animate attributeName="opacity" values="0.9;0.3;0.9" dur="2.2s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="1340" cy="260" r="3.5" fill="#FEF08A">
+          <animate attributeName="opacity" values="0.3;1;0.3" dur="4.2s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="700" cy="80" r="3" fill="#67E8F9">
+          <animate attributeName="opacity" values="0.5;1;0.5" dur="3.1s" repeatCount="indefinite"/>
+        </circle>
+      </g>
+
+      <!-- Distant 3D Diorama Elements (Planets & Satellites) -->
+      <g opacity="0.65">
+        <!-- Tiny Distant Ringed Planet -->
+        <g transform="translate(160, 290)">
+          <animateTransform attributeName="transform" type="translate" values="160,290; 160,282; 160,290" dur="8s" repeatCount="indefinite"/>
+          <ellipse cx="0" cy="0" rx="36" ry="11" fill="none" stroke="#A78BFA" stroke-width="4" transform="rotate(-15)"/>
+          <circle cx="0" cy="0" r="22" fill="#7C3AED"/>
+          <ellipse cx="0" cy="0" rx="36" ry="11" fill="none" stroke="#C4B5FD" stroke-width="2" stroke-dasharray="14 18" transform="rotate(-15)"/>
+        </g>
+        <!-- Floating Satellite -->
+        <g transform="translate(1260, 190)">
+          <animateTransform attributeName="transform" type="translate" values="1260,190; 1260,202; 1260,190" dur="6s" repeatCount="indefinite"/>
+          <rect x="-16" y="-10" width="32" height="20" rx="6" fill="#475569" stroke="#94A3B8" stroke-width="2"/>
+          <rect x="-42" y="-5" width="22" height="10" rx="2" fill="#38BDF8"/>
+          <rect x="20" y="-5" width="22" height="10" rx="2" fill="#38BDF8"/>
+          <circle cx="0" cy="0" r="4" fill="#F43F5E">
+            <animate attributeName="fill" values="#F43F5E;#10B981;#F43F5E" dur="1.8s" repeatCount="indefinite"/>
+          </circle>
+        </g>
+      </g>
+
+      <!-- Diorama Bottom Shelf Architecture -->
+      <g transform="translate(0, 680)">
+        <!-- Horizon Isometric Space Ground Platform -->
+        <path d="M0,80 Q360,40 720,70 T1440,60 L1440,220 L0,220 Z" fill="#161B3D"/>
+        <path d="M0,110 Q400,75 800,100 T1440,90 L1440,220 L0,220 Z" fill="#0F122B"/>
+        <!-- Futuristic Ground Grid Line -->
+        <path d="M0,80 Q360,40 720,70 T1440,60" fill="none" stroke="#6366F1" stroke-width="3" opacity="0.4"/>
+        
+        <!-- Platform Buildings, Crystals & Hangar Details -->
+        <polygon points="120,70 135,35 150,70 135,80" fill="#38BDF8" opacity="0.75"/>
+        <polygon points="135,35 150,70 142,75" fill="#0284C7" opacity="0.8"/>
+        <polygon points="160,82 170,55 180,82" fill="#818CF8" opacity="0.6"/>
+
+        <path d="M260,80 Q310,25 360,80 Z" fill="#1E293B" stroke="#475569" stroke-width="3"/>
+        <circle cx="310" cy="62" r="9" fill="#FBBF24">
+          <animate attributeName="opacity" values="0.4;1;0.4" dur="2s" repeatCount="indefinite"/>
+        </circle>
+        <rect x="298" y="75" width="24" height="15" rx="3" fill="#0284C7"/>
+
+        <g transform="translate(1080, 85)">
+          <animateTransform attributeName="transform" type="rotate" values="-10 1080 85; 20 1080 85; -10 1080 85" dur="10s" repeatCount="indefinite"/>
+          <path d="M-22,-30 A 24 24 0 0 1 22,-30" fill="none" stroke="#E2E8F0" stroke-width="5" stroke-linecap="round"/>
+          <line x1="0" y1="-30" x2="0" y2="-12" stroke="#94A3B8" stroke-width="3"/>
+          <circle cx="0" cy="-35" r="4" fill="#EC4899"/>
+        </g>
+
+        <polygon points="1310,85 1330,40 1345,85" fill="#F472B6" opacity="0.8"/>
+        <polygon points="1340,90 1355,50 1370,90" fill="#C084FC" opacity="0.7"/>
+        <polygon points="1285,95 1298,65 1312,95" fill="#38BDF8" opacity="0.7"/>
+      </g>
+    </svg>
+  </div>
+
+  <!-- Top Navigation Header -->
+  <header class="w-full max-w-5xl px-3 sm:px-6 pt-3 pb-2 z-20 flex justify-between items-center relative">
+    <!-- Brand & Mini Mascot Avatar -->
+    <div id="btnHeaderHome" class="flex items-center gap-2 cursor-pointer transition active:scale-95" role="button" aria-label="Home">
+      <div class="w-11 h-11 sm:w-13 sm:h-13 bg-gradient-to-br from-indigo-500 to-purple-700 rounded-2xl p-1 shadow-md border-2 border-indigo-300 flex items-center justify-center">
+        <!-- Mini Mascot Icon (Ollie the Space Fox Astronaut) -->
+        <svg viewBox="0 0 100 100" class="w-full h-full">
+          <ellipse cx="50" cy="50" rx="38" ry="36" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="4"/>
+          <ellipse cx="50" cy="50" rx="28" ry="24" fill="#0F172A"/>
+          <path d="M30,55 L50,68 L70,55 L65,42 L35,42 Z" fill="#FB923C"/>
+          <polygon points="32,42 26,28 42,36" fill="#F97316"/>
+          <polygon points="68,42 74,28 58,36" fill="#F97316"/>
+          <circle cx="43" cy="50" r="3.5" fill="#FFF"/>
+          <circle cx="57" cy="50" r="3.5" fill="#FFF"/>
+          <ellipse cx="50" cy="58" rx="2.5" ry="1.8" fill="#431407"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-sm sm:text-base font-extrabold text-white tracking-wide drop-shadow-sm leading-tight">Rocket Builder</h1>
+        <p id="headerSubtitle" data-i18n="headerSubtitle" class="text-xs font-semibold text-cyan-300">Pengembaraan Kod</p>
+      </div>
+    </div>
+
+    <!-- Right Controls: Audio Toggle, Language Toggle, Score Pill -->
+    <div class="flex items-center gap-2 sm:gap-3">
+      <!-- In-Game Mission / Score Pill -->
+      <div id="headerScoreCard" class="hidden sm:flex items-center bg-space-800/90 border-2 border-amber-400/80 px-3 py-1 rounded-2xl shadow-sm">
+        <svg viewBox="0 0 24 24" class="w-5 h-5 mr-1.5 fill-amber-400">
+          <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+        </svg>
+        <span id="headerScoreLabel" data-i18n="scoreLabel" class="text-xs font-bold text-amber-200 mr-1">Skor:</span>
+        <span id="headerScoreVal" class="text-sm font-extrabold text-amber-300">0</span>
+      </div>
+
+      <!-- Sound Mute/Unmute Button -->
+      <button id="btnSoundToggle" class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-space-800 border-2 border-indigo-400/60 flex items-center justify-center text-white active:scale-95 shadow-md" aria-label="Bunyi Audio">
+        <svg id="iconSoundOn" viewBox="0 0 24 24" class="w-5 h-5 fill-cyan-300">
+          <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+        </svg>
+        <svg id="iconSoundOff" viewBox="0 0 24 24" class="w-5 h-5 fill-gray-400 hidden">
+          <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27l4.73 4.73H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+        </svg>
+      </button>
+
+      <!-- Language Selector Button (BM / EN) -->
+      <button id="btnLangToggle" class="px-3 h-10 sm:h-11 rounded-2xl bg-gradient-to-r from-pink-500 to-rose-600 border-2 border-pink-300 font-extrabold text-xs sm:text-sm text-white flex items-center gap-1.5 shadow-md active:scale-95" aria-label="Tukar Bahasa">
+        <span id="langCurrentLabel">BM</span>
+        <svg viewBox="0 0 20 20" class="w-4 h-4 fill-white opacity-80">
+          <path d="M7 7l3-3 3 3m0 6l-3 3-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN APP CONTAINER -->
+  <main id="appContainer" class="w-full max-w-5xl flex-1 flex flex-col justify-center items-center px-3 sm:px-6 relative z-10 py-2">
+    
+    <!-- ============================================== -->
+    <!-- 1. HOME SCREEN                                 -->
+    <!-- ============================================== -->
+    <section id="screenHome" class="w-full flex flex-col items-center text-center max-w-xl transition-all duration-300">
+      <!-- Mascot Hero Showcase Illustration -->
+      <div class="w-44 h-44 sm:w-56 sm:h-56 relative mb-3 floating-anim">
+        <svg viewBox="0 0 200 200" class="w-full h-full drop-shadow-2xl">
+          <rect x="52" y="80" width="96" height="42" rx="14" fill="#475569"/>
+          <ellipse cx="68" cy="125" rx="8" ry="12" fill="#F97316"/>
+          <ellipse cx="132" cy="125" rx="8" ry="12" fill="#F97316"/>
+          <ellipse cx="100" cy="130" rx="46" ry="42" fill="#F8FAFC" stroke="#94A3B8" stroke-width="5"/>
+          <path d="M58 136 Q100 144 142 136" stroke="#0284C7" stroke-width="8" fill="none" stroke-linecap="round"/>
+          <circle cx="100" cy="140" r="7" fill="#F43F5E"/>
+          <ellipse cx="50" cy="122" rx="14" ry="24" fill="#F8FAFC" stroke="#94A3B8" stroke-width="4" transform="rotate(35 50 122)"/>
+          <ellipse cx="150" cy="115" rx="14" ry="24" fill="#F8FAFC" stroke="#94A3B8" stroke-width="4" transform="rotate(-40 150 115)"/>
+          <circle cx="100" cy="74" r="54" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="6"/>
+          <ellipse cx="100" cy="72" rx="44" ry="36" fill="#0B1329" stroke="#38BDF8" stroke-width="4"/>
+          <polygon points="62,28 78,50 50,48" fill="#FB923C" stroke="#EA580C" stroke-width="2"/>
+          <polygon points="138,28 122,50 150,48" fill="#FB923C" stroke="#EA580C" stroke-width="2"/>
+          <ellipse cx="100" cy="74" rx="30" ry="26" fill="#FB923C"/>
+          <path d="M80,78 Q100,94 120,78 L114,68 L86,68 Z" fill="#FED7AA"/>
+          <ellipse cx="88" cy="68" rx="6" ry="7" fill="#0F172A">
+            <animate attributeName="ry" values="7;1;7" dur="4s" repeatCount="indefinite"/>
+          </ellipse>
+          <circle cx="86" cy="65" r="2.5" fill="#FFF"/>
+          <ellipse cx="112" cy="68" rx="6" ry="7" fill="#0F172A">
+            <animate attributeName="ry" values="7;1;7" dur="4s" repeatCount="indefinite"/>
+          </ellipse>
+          <circle cx="110" cy="65" r="2.5" fill="#FFF"/>
+          <polygon points="98,75 102,75 100,78" fill="#431407"/>
+          <path d="M96 80 Q100 84 104 80" stroke="#431407" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <path d="M72 50 Q100 42 126 50" stroke="#FFF" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+        </svg>
+      </div>
+
+      <h2 id="homeTitle" data-i18n="title" class="text-3xl sm:text-4xl font-extrabold text-white tracking-wide drop-shadow-lg mb-1 leading-tight">
+        Rocket Builder Coding Adventure
+      </h2>
+      <p id="homeSubtitle" data-i18n="subtitle" class="text-base sm:text-lg font-bold text-amber-300 mb-6 drop-shadow">
+        Bina roket dan bantu roket meneroka angkasa!
+      </p>
+
+      <!-- Main Action Buttons Navigation -->
+      <div class="w-full flex flex-col gap-3.5 max-w-xs sm:max-w-sm">
+        <button id="btnHomeStart" class="btn-chunky btn-cyan py-3.5 sm:py-4 text-lg sm:text-xl flex items-center justify-center gap-3">
+          <svg viewBox="0 0 24 24" class="w-6 h-6 fill-white">
+            <path d="M8 5v14l11-7z"/>
+          </svg>
+          <span data-i18n="startPlaying">Mula Main</span>
+        </button>
+
+        <div class="grid grid-cols-2 gap-3">
+          <button id="btnHomeProfile" class="btn-chunky btn-purple py-3 text-sm sm:text-base flex items-center justify-center gap-2">
+            <svg viewBox="0 0 24 24" class="w-5 h-5 fill-white">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+            <span data-i18n="playerProfile">Profil Pemain</span>
+          </button>
+          <button id="btnHomeHowTo" class="btn-chunky btn-yellow py-3 text-sm sm:text-base flex items-center justify-center gap-2">
+            <svg viewBox="0 0 24 24" class="w-5 h-5 fill-amber-950">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 16h-2v-2h2v2zm1.07-7.75l-.9.92C12.45 11.9 12 12.5 12 14h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/>
+            </svg>
+            <span data-i18n="howToPlay">Cara Main</span>
+          </button>
+        </div>
+
+        <button id="btnHomeCollection" class="btn-chunky btn-pink py-3 text-sm sm:text-base flex items-center justify-center gap-2">
+          <svg viewBox="0 0 24 24" class="w-5 h-5 fill-white">
+            <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/>
+          </svg>
+          <span data-i18n="collection">Koleksi</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- 2. LEVEL SELECTION SCREEN                      -->
+    <!-- ============================================== -->
+    <section id="screenLevelSelect" class="w-full max-w-2xl hidden flex-col items-center text-center">
+      <div class="mb-4">
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-white" data-i18n="chooseLevel">Pilih Tahap</h2>
+        <p class="text-sm font-semibold text-cyan-300" data-i18n="levelDesc">Pilih cabaran untuk memulakan pengembaraan</p>
+      </div>
+
+      <!-- 5 Difficulty Levels (All unlocked by design) -->
+      <div class="w-full grid grid-cols-1 sm:grid-cols-2 gap-3.5 mb-6">
+        <!-- Level 1 -->
+        <button onclick="Game.selectLevel(1)" class="btn-chunky bg-gradient-to-r from-emerald-500 to-teal-600 border-2 border-emerald-300 p-4 text-left flex items-center gap-4">
+          <div class="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center font-black text-2xl text-white">1</div>
+          <div>
+            <div class="font-extrabold text-lg text-white" data-i18n="level1Title">Tahap 1</div>
+            <div class="text-xs font-bold text-emerald-100" data-i18n="level1Sub">Rocket Starter (1-2 Arahan)</div>
+          </div>
+        </button>
+
+        <!-- Level 2 -->
+        <button onclick="Game.selectLevel(2)" class="btn-chunky bg-gradient-to-r from-cyan-500 to-blue-600 border-2 border-cyan-300 p-4 text-left flex items-center gap-4">
+          <div class="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center font-black text-2xl text-white">2</div>
+          <div>
+            <div class="font-extrabold text-lg text-white" data-i18n="level2Title">Tahap 2</div>
+            <div class="text-xs font-bold text-cyan-100" data-i18n="level2Sub">Space Explorer (2-4 Arahan)</div>
+          </div>
+        </button>
+
+        <!-- Level 3 -->
+        <button onclick="Game.selectLevel(3)" class="btn-chunky bg-gradient-to-r from-indigo-500 to-purple-600 border-2 border-indigo-300 p-4 text-left flex items-center gap-4">
+          <div class="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center font-black text-2xl text-white">3</div>
+          <div>
+            <div class="font-extrabold text-lg text-white" data-i18n="level3Title">Tahap 3</div>
+            <div class="text-xs font-bold text-purple-100" data-i18n="level3Sub">Planet Mission (3-6 Arahan)</div>
+          </div>
+        </button>
+
+        <!-- Level 4 -->
+        <button onclick="Game.selectLevel(4)" class="btn-chunky bg-gradient-to-r from-pink-500 to-rose-600 border-2 border-pink-300 p-4 text-left flex items-center gap-4">
+          <div class="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center font-black text-2xl text-white">4</div>
+          <div>
+            <div class="font-extrabold text-lg text-white" data-i18n="level4Title">Tahap 4</div>
+            <div class="text-xs font-bold text-pink-100" data-i18n="level4Sub">Space Adventure (4-8 Arahan)</div>
+          </div>
+        </button>
+
+        <!-- Level 5 -->
+        <button onclick="Game.selectLevel(5)" class="btn-chunky bg-gradient-to-r from-amber-500 to-orange-600 border-2 border-amber-300 p-4 text-left flex items-center gap-4 sm:col-span-2">
+          <div class="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center font-black text-2xl text-white">5</div>
+          <div>
+            <div class="font-extrabold text-lg text-white" data-i18n="level5Title">Tahap 5</div>
+            <div class="text-xs font-bold text-amber-100" data-i18n="level5Sub">Space Coding Adventure (5-10 Arahan & Rintangan)</div>
+          </div>
+        </button>
+      </div>
+
+      <button onclick="UI.showScreen('screenHome')" class="btn-chunky bg-slate-700 border-2 border-slate-500 text-white px-6 py-2.5 rounded-2xl text-sm font-bold flex items-center gap-2">
+        <svg viewBox="0 0 20 20" class="w-5 h-5 fill-white"><path d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"/></svg>
+        <span data-i18n="backToMenu">Kembali ke Menu</span>
+      </button>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- 3. SESSION SELECTION SCREEN                    -->
+    <!-- ============================================== -->
+    <section id="screenSessionSelect" class="w-full max-w-lg hidden flex-col items-center text-center">
+      <h2 class="text-2xl sm:text-3xl font-extrabold text-white mb-1" data-i18n="chooseGame">Pilih Permainan</h2>
+      <p id="sessionSubtitle" class="text-sm font-bold text-cyan-300 mb-6">Tahap 1</p>
+
+      <div class="w-full grid grid-cols-2 gap-3.5 mb-6">
+        <button onclick="Game.startSession(5)" class="btn-chunky btn-cyan py-5 text-center">
+          <div class="text-2xl font-black text-white">5</div>
+          <div class="text-sm font-bold text-emerald-100" data-i18n="fiveQuestions">5 Soalan</div>
+        </button>
+        <button onclick="Game.startSession(10)" class="btn-chunky btn-blue py-5 text-center">
+          <div class="text-2xl font-black text-white">10</div>
+          <div class="text-sm font-bold text-blue-100" data-i18n="tenQuestions">10 Soalan</div>
+        </button>
+        <button onclick="Game.startSession(20)" class="btn-chunky btn-purple py-5 text-center">
+          <div class="text-2xl font-black text-white">20</div>
+          <div class="text-sm font-bold text-purple-100" data-i18n="twentyQuestions">20 Soalan</div>
+        </button>
+        <button onclick="Game.startSession(Infinity)" class="btn-chunky btn-yellow py-5 text-center">
+          <div class="text-2xl font-black text-amber-950">∞</div>
+          <div class="text-sm font-bold text-amber-900" data-i18n="freePlay">Main Bebas</div>
+        </button>
+      </div>
+
+      <button onclick="UI.showScreen('screenLevelSelect')" class="btn-chunky bg-slate-700 border-2 border-slate-500 text-white px-6 py-2.5 rounded-2xl text-sm font-bold flex items-center gap-2">
+        <svg viewBox="0 0 20 20" class="w-5 h-5 fill-white"><path d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"/></svg>
+        <span data-i18n="backToMenu">Kembali ke Menu</span>
+      </button>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- 4. ROCKET BUILDER SCREEN                       -->
+    <!-- ============================================== -->
+    <section id="screenRocketBuilder" class="w-full max-w-3xl hidden flex-col items-center">
+      <div class="w-full flex items-center justify-between mb-2 px-2">
+        <div>
+          <span class="text-xs uppercase font-extrabold text-amber-300 tracking-wider" data-i18n="hangarLabel">Bengkel Angkasa</span>
+          <h2 id="builderInstruction" data-i18n="builderInstruction" class="text-lg sm:text-xl font-extrabold text-white">Pasang bahagian roket!</h2>
+        </div>
+        <div id="assemblyProgressBadge" class="bg-indigo-900/80 border-2 border-indigo-400 px-3 py-1 rounded-xl text-xs sm:text-sm font-bold text-indigo-200">
+          0 / 3
+        </div>
+      </div>
+
+      <!-- Assembly Workstation -->
+      <div class="w-full bg-space-800/95 border-2 border-indigo-500/40 rounded-3xl p-4 shadow-2xl relative flex flex-col md:flex-row items-center gap-6 justify-center min-h-[340px]">
+        <!-- Blueprint Silhouette -->
+        <div class="w-48 h-64 sm:w-56 sm:h-72 bg-space-900/80 rounded-2xl border-2 border-dashed border-cyan-400/50 flex flex-col items-center justify-center relative p-3 overflow-hidden shadow-inner">
+          <div class="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
+            <svg width="100%" height="100%">
+              <defs><pattern id="blueGrid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="#38BDF8" stroke-width="1"/></pattern></defs>
+              <rect width="100%" height="100%" fill="url(#blueGrid)" />
+            </svg>
+          </div>
+          <div id="blueprintRocketSlot" class="w-full h-full flex items-center justify-center relative"></div>
+        </div>
+
+        <!-- Physical Parts Tray -->
+        <div class="flex-1 w-full flex flex-col items-center">
+          <p id="builderSubPrompt" data-i18n="builderSubPrompt" class="text-xs sm:text-sm font-bold text-indigo-200 mb-3 text-center">
+            Tekan bahagian yang berkelip untuk memasang roket anda:
+          </p>
+
+          <div id="availablePartsGrid" class="w-full grid grid-cols-2 sm:grid-cols-3 gap-3 justify-items-center"></div>
+
+          <div id="assemblyFeedback" class="mt-3 text-xs sm:text-sm font-bold text-amber-300 min-h-[20px] text-center"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- 5. CODING & SPACE ADVENTURE WORLD SCREEN       -->
+    <!-- ============================================== -->
+    <section id="screenAdventure" class="w-full max-w-4xl hidden flex-col items-center relative overflow-hidden">
+      <!-- Mission Prompt Bar -->
+      <div class="w-full bg-space-800/90 border-2 border-purple-500/60 rounded-2xl p-2.5 sm:p-3 mb-2 flex items-center justify-between shadow-lg">
+        <div class="flex items-center gap-2.5">
+          <div id="missionMascotAvatar" class="w-10 h-10 rounded-xl bg-purple-700 p-0.5 border border-purple-300 flex-shrink-0">
+            <svg viewBox="0 0 100 100" class="w-full h-full">
+              <circle cx="50" cy="50" r="40" fill="#FB923C"/>
+              <ellipse cx="50" cy="58" rx="20" ry="14" fill="#FED7AA"/>
+              <circle cx="40" cy="46" r="4.5" fill="#0F172A"/>
+              <circle cx="60" cy="46" r="4.5" fill="#0F172A"/>
+              <polygon points="48,53 52,53 50,56" fill="#431407"/>
+            </svg>
+          </div>
+          <div>
+            <div id="missionBadge" class="text-[10px] sm:text-xs font-black uppercase text-amber-300 tracking-wider">Misi 1</div>
+            <div id="missionInstructionText" class="text-xs sm:text-sm md:text-base font-extrabold text-white">Bantu roket pergi ke planet!</div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <div id="questionCounterBadge" class="bg-indigo-900 border border-indigo-400 px-2.5 py-1 rounded-xl text-xs font-black text-indigo-200">
+            1/5
+          </div>
+        </div>
+      </div>
+
+      <!-- Space Diorama Viewport -->
+      <div id="dioramaContainer" class="w-full aspect-[4/3] sm:aspect-[16/10] max-h-[460px] bg-[#0A0D22] border-4 border-indigo-500/50 rounded-3xl relative overflow-hidden shadow-2xl">
+        <div id="worldViewport" class="absolute inset-0 w-full h-full transform origin-center">
+          <svg id="adventureSvgMap" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid meet" class="w-full h-full">
+            <defs>
+              <filter id="glowFilter" x="-30%" y="-30%" width="160%" height="160%">
+                <feGaussianBlur stdDeviation="5" result="blur"/>
+                <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+              </filter>
+            </defs>
+
+            <g id="gridTilesLayer" opacity="0.35"></g>
+            <g id="worldPropsLayer"></g>
+            <g id="reactionFxLayer"></g>
+            <g id="rocketActor" transform="translate(100, 250)" class="transition-transform duration-500 ease-out"></g>
+          </svg>
+        </div>
+
+        <!-- Mascot Speech Overlay -->
+        <div id="mascotSpeechOverlay" class="absolute top-4 left-4 right-4 flex justify-center pointer-events-none opacity-0 transition-opacity duration-300 z-30">
+          <div id="mascotSpeechBubble" class="bg-space-800/95 border-2 border-amber-400 px-4 py-2 rounded-2xl shadow-2xl flex items-center gap-3">
+            <div id="mascotBubbleIcon" class="w-8 h-8 flex-shrink-0"></div>
+            <span id="mascotSpeechText" class="font-extrabold text-sm sm:text-base text-amber-300">Hebat!</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- CODING COMMAND INTERFACE -->
+      <div id="codingTray" class="w-full mt-2 tray-slide flex flex-col items-center">
+        <!-- Selected Command Sequence Strip -->
+        <div class="w-full bg-space-800/90 border-2 border-indigo-400/40 rounded-2xl p-2 mb-2 flex items-center justify-between min-h-[58px] overflow-x-auto gap-2">
+          <div class="flex items-center gap-1.5 overflow-x-auto flex-1 py-1" id="sequenceList">
+            <span id="emptySequencePrompt" data-i18n="emptySequence" class="text-xs sm:text-sm font-semibold text-slate-400 pl-2">
+              Tekan arahan di bawah untuk memasukkan ke dalam urutan...
+            </span>
+          </div>
+          <!-- Clear Sequence Button -->
+          <button id="btnClearSequence" class="w-9 h-9 flex-shrink-0 rounded-xl bg-rose-900/60 border border-rose-400 flex items-center justify-center active:scale-95 ml-1" title="Padam semua" aria-label="Padam semua">
+            <svg viewBox="0 0 24 24" class="w-5 h-5 fill-rose-300"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+          </button>
+        </div>
+
+        <!-- Direction Buttons Deck (Arrow Icons Only) -->
+        <div class="w-full flex flex-wrap items-center justify-center gap-2.5 sm:gap-3.5">
+          <button id="btnCmdForward" onclick="Game.addCommand('FORWARD')" class="btn-chunky btn-cyan w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center" aria-label="Depan">
+            <svg viewBox="0 0 24 24" class="w-6 h-6 sm:w-7 sm:h-7 fill-white"><path d="M5 13h11.86l-5.43 5.43 1.42 1.42L21.14 12l-8.29-7.85-1.42 1.42L16.86 11H5v2z"/></svg>
+          </button>
+
+          <button id="btnCmdBack" onclick="Game.addCommand('BACK')" class="btn-chunky btn-blue w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center" aria-label="Belakang">
+            <svg viewBox="0 0 24 24" class="w-6 h-6 sm:w-7 sm:h-7 fill-white"><path d="M19 11H7.14l5.43-5.43-1.42-1.42L2.86 12l8.29 7.85 1.42-1.42L7.14 13H19v-2z"/></svg>
+          </button>
+
+          <button id="btnCmdUp" onclick="Game.addCommand('UP')" class="btn-chunky btn-purple w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center" aria-label="Atas">
+            <svg viewBox="0 0 24 24" class="w-6 h-6 sm:w-7 sm:h-7 fill-white"><path d="M13 19V7.14l5.43 5.43 1.42-1.42L12 2.86l-7.85 8.29 1.42 1.42L11 7.14V19h2z"/></svg>
+          </button>
+
+          <button id="btnCmdDown" onclick="Game.addCommand('DOWN')" class="btn-chunky btn-pink w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center" aria-label="Bawah">
+            <svg viewBox="0 0 24 24" class="w-6 h-6 sm:w-7 sm:h-7 fill-white"><path d="M11 5v11.86l-5.43-5.43-1.42 1.42L12 21.14l7.85-8.29-1.42-1.42L13 16.86V5h-2z"/></svg>
+          </button>
+
+          <!-- START LAUNCH BUTTON -->
+          <button id="btnLaunchSequence" onclick="Game.executeLaunch()" class="btn-chunky btn-yellow px-5 sm:px-7 h-12 sm:h-14 rounded-2xl text-sm sm:text-base font-black flex items-center gap-2">
+            <svg viewBox="0 0 24 24" class="w-5 h-5 fill-amber-950"><path d="M8 5v14l11-7z"/></svg>
+            <span data-i18n="cmdStart">Mula</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- 6. RESULT SCREEN                               -->
+    <!-- ============================================== -->
+    <section id="screenResult" class="w-full max-w-lg hidden flex-col items-center text-center">
+      <div class="w-36 h-36 relative mb-3 floating-anim">
+        <svg viewBox="0 0 200 200" class="w-full h-full drop-shadow-xl">
+          <polygon points="30,40 35,25 40,40 55,45 40,50 35,65 30,50 15,45" fill="#FDE047"/>
+          <polygon points="160,50 165,35 170,50 185,55 170,60 165,75 160,60 145,55" fill="#38BDF8"/>
+          <ellipse cx="100" cy="130" rx="46" ry="42" fill="#F8FAFC" stroke="#94A3B8" stroke-width="5"/>
+          <circle cx="100" cy="74" r="50" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="6"/>
+          <ellipse cx="100" cy="72" rx="42" ry="34" fill="#0B1329"/>
+          <path d="M82 66 Q88 60 94 66" stroke="#FBBF24" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <path d="M106 66 Q112 60 118 66" stroke="#FBBF24" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <ellipse cx="100" cy="78" rx="8" ry="6" fill="#F43F5E"/>
+        </svg>
+      </div>
+
+      <h2 class="text-3xl font-black text-amber-300 drop-shadow mb-1" data-i18n="greatJob">Hebat!</h2>
+      <p class="text-lg font-bold text-white mb-6" data-i18n="missionComplete">Misi Selesai!</p>
+
+      <div class="w-full bg-space-800 border-2 border-indigo-400/50 rounded-3xl p-5 mb-6 shadow-2xl">
+        <div class="grid grid-cols-3 gap-3 text-center">
+          <div class="bg-space-900/60 p-3 rounded-2xl border border-indigo-500/30">
+            <span class="text-xs font-bold text-slate-300" data-i18n="score">Skor</span>
+            <div id="resultScore" class="text-2xl font-black text-amber-300">50</div>
+          </div>
+          <div class="bg-space-900/60 p-3 rounded-2xl border border-indigo-500/30">
+            <span class="text-xs font-bold text-slate-300" data-i18n="correctAnswers">Jawapan Betul</span>
+            <div id="resultCorrect" class="text-2xl font-black text-emerald-300">5</div>
+          </div>
+          <div class="bg-space-900/60 p-3 rounded-2xl border border-indigo-500/30">
+            <span class="text-xs font-bold text-slate-300" data-i18n="accuracy">Ketepatan</span>
+            <div id="resultAccuracy" class="text-2xl font-black text-cyan-300">100%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="w-full flex flex-col gap-3 max-w-xs">
+        <button onclick="Game.playAgain()" class="btn-chunky btn-cyan py-3.5 text-base font-black flex items-center justify-center gap-2">
+          <svg viewBox="0 0 24 24" class="w-5 h-5 fill-white"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+          <span data-i18n="playAgain">Main Lagi</span>
+        </button>
+        <button onclick="UI.showScreen('screenHome')" class="btn-chunky bg-slate-700 border-2 border-slate-500 text-white py-3 text-sm font-bold flex items-center justify-center gap-2">
+          <svg viewBox="0 0 20 20" class="w-4 h-4 fill-white"><path d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"/></svg>
+          <span data-i18n="backToMenu">Kembali ke Menu</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- 7. HOW TO PLAY SCREEN                          -->
+    <!-- ============================================== -->
+    <section id="screenHowToPlay" class="w-full max-w-2xl hidden flex-col items-center text-center">
+      <h2 class="text-2xl sm:text-3xl font-extrabold text-white mb-1" data-i18n="howToPlay">Cara Main</h2>
+      <p class="text-sm font-bold text-cyan-300 mb-6" data-i18n="howToInstruction">
+        Pasang roket, pilih arahan dan bantu roket sampai ke destinasi!
+      </p>
+
+      <div class="w-full grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 text-left">
+        <!-- Step 1: Rocket Assembly -->
+        <div class="bg-space-800 border-2 border-indigo-500/40 p-4 rounded-3xl flex items-center gap-4">
+          <div class="w-14 h-14 bg-indigo-900 rounded-2xl flex-shrink-0 flex items-center justify-center border border-indigo-400">
+            <svg viewBox="0 0 60 60" class="w-10 h-10">
+              <path d="M30 5 C38 18 42 35 42 45 L18 45 C18 35 22 18 30 5 Z" fill="#FF6584"/>
+              <circle cx="30" cy="28" r="6" fill="#38BDF8"/>
+            </svg>
+          </div>
+          <div>
+            <span class="text-xs font-black text-amber-300" data-i18n="howToStep1Title">1. Pasang Roket</span>
+            <p class="text-xs font-semibold text-slate-300" data-i18n="howToStep1Desc">Pilih bahagian roket untuk membina roket comel anda.</p>
+          </div>
+        </div>
+
+        <!-- Step 2: Choose Commands -->
+        <div class="bg-space-800 border-2 border-indigo-500/40 p-4 rounded-3xl flex items-center gap-4">
+          <div class="w-14 h-14 bg-cyan-900/60 rounded-2xl flex-shrink-0 flex items-center justify-center border border-cyan-400">
+            <svg viewBox="0 0 24 24" class="w-8 h-8 fill-cyan-300">
+              <path d="M5 13h11.86l-5.43 5.43 1.42 1.42L21.14 12l-8.29-7.85-1.42 1.42L16.86 11H5v2z"/>
+            </svg>
+          </div>
+          <div>
+            <span class="text-xs font-black text-cyan-300" data-i18n="howToStep2Title">2. Susun Arahan</span>
+            <p class="text-xs font-semibold text-slate-300" data-i18n="howToStep2Desc">Tekan butang anak panah untuk menyusun laluan roket.</p>
+          </div>
+        </div>
+
+        <!-- Step 3: Launch -->
+        <div class="bg-space-800 border-2 border-indigo-500/40 p-4 rounded-3xl flex items-center gap-4">
+          <div class="w-14 h-14 bg-amber-900/60 rounded-2xl flex-shrink-0 flex items-center justify-center border border-amber-400">
+            <svg viewBox="0 0 24 24" class="w-8 h-8 fill-amber-300">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+          </div>
+          <div>
+            <span class="text-xs font-black text-amber-300" data-i18n="howToStep3Title">3. Tekan Mula</span>
+            <p class="text-xs font-semibold text-slate-300" data-i18n="howToStep3Desc">Saksikan roket anda meluncur mengikut laluan kod!</p>
+          </div>
+        </div>
+
+        <!-- Step 4: Reach Destination -->
+        <div class="bg-space-800 border-2 border-indigo-500/40 p-4 rounded-3xl flex items-center gap-4">
+          <div class="w-14 h-14 bg-pink-900/60 rounded-2xl flex-shrink-0 flex items-center justify-center border border-pink-400">
+            <svg viewBox="0 0 50 50" class="w-10 h-10">
+              <circle cx="25" cy="25" r="16" fill="#A855F7"/>
+              <ellipse cx="25" cy="25" rx="24" ry="7" fill="none" stroke="#F472B6" stroke-width="3" transform="rotate(-20 25 25)"/>
+            </svg>
+          </div>
+          <div>
+            <span class="text-xs font-black text-pink-300" data-i18n="howToStep4Title">4. Misi Berjaya!</span>
+            <p class="text-xs font-semibold text-slate-300" data-i18n="howToStep4Desc">Dapatkan bintang dan raikan bersama maskot angkasa!</p>
+          </div>
+        </div>
+      </div>
+
+      <button onclick="UI.showScreen('screenHome')" class="btn-chunky bg-slate-700 border-2 border-slate-500 text-white px-6 py-2.5 rounded-2xl text-sm font-bold flex items-center gap-2">
+        <svg viewBox="0 0 20 20" class="w-4 h-4 fill-white"><path d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"/></svg>
+        <span data-i18n="backToMenu">Kembali ke Menu</span>
+      </button>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- 8. PLAYER PROFILE SCREEN                       -->
+    <!-- ============================================== -->
+    <section id="screenProfile" class="w-full max-w-xl hidden flex-col items-center">
+      <h2 class="text-2xl sm:text-3xl font-extrabold text-white mb-4" data-i18n="playerProfile">Profil Pemain</h2>
+
+      <div class="w-full bg-space-800 border-2 border-indigo-400/50 rounded-3xl p-5 mb-5 shadow-xl space-y-4">
+        <!-- Student Profile Input -->
+        <div>
+          <label class="block text-xs font-bold text-indigo-200 mb-1" data-i18n="studentProfile">Student Profile</label>
+          <input type="text" id="inputStudentName" placeholder="Nama Murid..." class="w-full bg-space-900 border-2 border-indigo-500/50 rounded-2xl px-4 py-2.5 text-white font-bold text-sm focus:outline-none focus:border-cyan-400">
+        </div>
+
+        <!-- Family Code (must start blank) -->
+        <div>
+          <label class="block text-xs font-bold text-indigo-200 mb-1" data-i18n="familyCode">Family Code</label>
+          <input type="text" id="inputFamilyCode" placeholder="Kod Keluarga (Kosong secara lalai)..." class="w-full bg-space-900 border-2 border-indigo-500/50 rounded-2xl px-4 py-2.5 text-white font-bold text-sm focus:outline-none focus:border-cyan-400">
+        </div>
+
+        <!-- Stats Overview -->
+        <div class="pt-2 border-t border-indigo-500/30">
+          <h3 class="text-xs font-extrabold text-amber-300 uppercase tracking-wider mb-2" data-i18n="familyHistory">Family History & Statistik</h3>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+            <div class="bg-space-900 p-2.5 rounded-xl border border-indigo-500/30">
+              <span class="text-[10px] font-bold text-slate-400" data-i18n="gamesPlayed">Permainan</span>
+              <div id="statGamesPlayed" class="text-lg font-black text-white">0</div>
+            </div>
+            <div class="bg-space-900 p-2.5 rounded-xl border border-indigo-500/30">
+              <span class="text-[10px] font-bold text-slate-400" data-i18n="questionsAnswered">Soalan</span>
+              <div id="statQuestions" class="text-lg font-black text-white">0</div>
+            </div>
+            <div class="bg-space-900 p-2.5 rounded-xl border border-indigo-500/30">
+              <span class="text-[10px] font-bold text-slate-400" data-i18n="bestScore">Skor Terbaik</span>
+              <div id="statBestScore" class="text-lg font-black text-amber-300">0</div>
+            </div>
+            <div class="bg-space-900 p-2.5 rounded-xl border border-indigo-500/30">
+              <span class="text-[10px] font-bold text-slate-400" data-i18n="accuracy">Ketepatan</span>
+              <div id="statAccuracy" class="text-lg font-black text-cyan-300">100%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-1">
+          <button id="btnSaveProfile" onclick="ProfileManager.save()" class="w-full btn-chunky btn-cyan py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2">
+            <span data-i18n="saveProfile">Simpan Profil</span>
+          </button>
+        </div>
+      </div>
+
+      <button onclick="UI.showScreen('screenHome')" class="btn-chunky bg-slate-700 border-2 border-slate-500 text-white px-6 py-2.5 rounded-2xl text-sm font-bold flex items-center gap-2">
+        <svg viewBox="0 0 20 20" class="w-4 h-4 fill-white"><path d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"/></svg>
+        <span data-i18n="backToMenu">Kembali ke Menu</span>
+      </button>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- 9. COLLECTION SCREEN                           -->
+    <!-- ============================================== -->
+    <section id="screenCollection" class="w-full max-w-3xl hidden flex-col items-center">
+      <h2 class="text-2xl sm:text-3xl font-extrabold text-white mb-1" data-i18n="collection">Koleksi</h2>
+      <p class="text-xs sm:text-sm font-bold text-cyan-300 mb-4" data-i18n="collectionDesc">Galeri seni roket, planet & watak comel!</p>
+
+      <!-- Category Filter Tabs -->
+      <div class="flex flex-wrap gap-2 justify-center mb-4">
+        <button onclick="UI.renderCollectionTab('bodies')" id="tabBodies" data-i18n="tabBodies" class="px-3 py-1.5 rounded-xl bg-space-800 text-xs font-bold text-white border border-indigo-400/50">Badan Roket</button>
+        <button onclick="UI.renderCollectionTab('windows')" id="tabWindows" data-i18n="tabWindows" class="px-3 py-1.5 rounded-xl bg-space-800 text-xs font-bold text-white border border-indigo-400/50">Tingkap</button>
+        <button onclick="UI.renderCollectionTab('fins')" id="tabFins" data-i18n="tabFins" class="px-3 py-1.5 rounded-xl bg-space-800 text-xs font-bold text-white border border-indigo-400/50">Sayap & Sirip</button>
+        <button onclick="UI.renderCollectionTab('engines')" id="tabEngines" data-i18n="tabEngines" class="px-3 py-1.5 rounded-xl bg-space-800 text-xs font-bold text-white border border-indigo-400/50">Enjin & Api</button>
+        <button onclick="UI.renderCollectionTab('planets')" id="tabPlanets" data-i18n="tabPlanets" class="px-3 py-1.5 rounded-xl bg-space-800 text-xs font-bold text-white border border-indigo-400/50">Planet</button>
+        <button onclick="UI.renderCollectionTab('mascot')" id="tabMascot" data-i18n="tabMascot" class="px-3 py-1.5 rounded-xl bg-space-800 text-xs font-bold text-white border border-indigo-400/50">Maskot</button>
+      </div>
+
+      <!-- Collection Items Grid -->
+      <div id="collectionItemsGrid" class="w-full grid grid-cols-2 sm:grid-cols-3 gap-3.5 mb-6 max-h-[380px] overflow-y-auto p-2 bg-space-800/60 rounded-3xl border border-indigo-500/30"></div>
+
+      <button onclick="UI.showScreen('screenHome')" class="btn-chunky bg-slate-700 border-2 border-slate-500 text-white px-6 py-2.5 rounded-2xl text-sm font-bold flex items-center gap-2">
+        <svg viewBox="0 0 20 20" class="w-4 h-4 fill-white"><path d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"/></svg>
+        <span data-i18n="backToMenu">Kembali ke Menu</span>
+      </button>
+    </section>
+
+  </main>
+
+  <!-- STRICT UNMODIFIED FOOTER REQUIRED BY SPEC -->
+  <footer class="w-full text-center py-3 text-xs font-bold text-slate-400/80 z-20">
+    Kinder Klub | All Rights Reserved
+  </footer>
+
+  <script>
+  const SoundFX = {
+    ctx: null,
+    muted: false,
+
+    init() {
+      if (!this.ctx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        this.ctx = new AudioCtx();
+      }
+      if (this.ctx && this.ctx.state === 'suspended') {
+        this.ctx.resume();
+      }
+    },
+
+    toggle() {
+      this.muted = !this.muted;
+      const onIcon = document.getElementById('iconSoundOn');
+      const offIcon = document.getElementById('iconSoundOff');
+      if (onIcon) onIcon.classList.toggle('hidden', this.muted);
+      if (offIcon) offIcon.classList.toggle('hidden', !this.muted);
+    },
+
+    playPop() {
+      if (this.muted) return;
+      this.init();
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(440, this.ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(880, this.ctx.currentTime + 0.08);
+      gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.08);
+    },
+
+    playSnap() {
+      if (this.muted) return;
+      this.init();
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(320, this.ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(640, this.ctx.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.12);
+    },
+
+    playWhoosh() {
+      if (this.muted) return;
+      this.init();
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+      osc.frequency.linearRampToValueAtTime(600, this.ctx.currentTime + 0.4);
+      gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.45);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.45);
+    },
+
+    playCelebration() {
+      if (this.muted) return;
+      this.init();
+      const notes = [261.63, 329.63, 392.00, 523.25];
+      notes.forEach((freq, i) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime + (i * 0.1));
+        gain.gain.setValueAtTime(0.25, this.ctx.currentTime + (i * 0.1));
+        gain.gain.linearRampToValueAtTime(0.001, this.ctx.currentTime + (i * 0.1) + 0.28);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(this.ctx.currentTime + (i * 0.1));
+        osc.stop(this.ctx.currentTime + (i * 0.1) + 0.3);
+      });
+    },
+
+    playTryAgain() {
+      if (this.muted) return;
+      this.init();
+      const notes = [320, 260];
+      notes.forEach((freq, i) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime + (i * 0.15));
+        gain.gain.setValueAtTime(0.25, this.ctx.currentTime + (i * 0.15));
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + (i * 0.15) + 0.2);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(this.ctx.currentTime + (i * 0.15));
+        osc.stop(this.ctx.currentTime + (i * 0.15) + 0.22);
+      });
+    }
+  };
+
+  const I18N = {
+    current: 'bm',
+    data: {
+      bm: {
+        title: 'Rocket Builder Coding Adventure',
+        subtitle: 'Bina roket dan bantu roket meneroka angkasa!',
+        headerSubtitle: 'Pengembaraan Kod',
+        scoreLabel: 'Skor:',
+        startPlaying: 'Mula Main',
+        playerProfile: 'Profil Pemain',
+        howToPlay: 'Cara Main',
+        collection: 'Koleksi',
+        chooseLevel: 'Pilih Tahap',
+        levelDesc: 'Pilih cabaran untuk memulakan pengembaraan',
+        level1Title: 'Tahap 1',
+        level1Sub: 'Rocket Starter (1-2 Arahan)',
+        level2Title: 'Tahap 2',
+        level2Sub: 'Space Explorer (2-4 Arahan)',
+        level3Title: 'Tahap 3',
+        level3Sub: 'Planet Mission (3-6 Arahan)',
+        level4Title: 'Tahap 4',
+        level4Sub: 'Space Adventure (4-8 Arahan)',
+        level5Title: 'Tahap 5',
+        level5Sub: 'Space Coding Adventure (5-10 Arahan & Rintangan)',
+        chooseGame: 'Pilih Permainan',
+        fiveQuestions: '5 Soalan',
+        tenQuestions: '10 Soalan',
+        twentyQuestions: '20 Soalan',
+        freePlay: 'Main Bebas',
+        hangarLabel: 'Bengkel Angkasa',
+        builderInstruction: 'Pasang bahagian roket!',
+        builderSubPrompt: 'Tekan bahagian yang berkelip untuk memasang roket anda:',
+        howToInstruction: 'Pasang roket, pilih arahan dan bantu roket sampai ke destinasi!',
+        howToStep1Title: '1. Pasang Roket',
+        howToStep1Desc: 'Pilih bahagian roket untuk membina roket comel anda.',
+        howToStep2Title: '2. Susun Arahan',
+        howToStep2Desc: 'Tekan butang anak panah untuk menyusun laluan roket.',
+        howToStep3Title: '3. Tekan Mula',
+        howToStep3Desc: 'Saksikan roket anda meluncur mengikut laluan kod!',
+        howToStep4Title: '4. Misi Berjaya!',
+        howToStep4Desc: 'Dapatkan bintang dan raikan bersama maskot angkasa!',
+        studentProfile: 'Student Profile',
+        familyCode: 'Family Code',
+        familyHistory: 'Family History & Statistik',
+        gamesPlayed: 'Permainan',
+        questionsAnswered: 'Soalan',
+        correctAnswers: 'Jawapan Betul',
+        bestScore: 'Skor Terbaik',
+        accuracy: 'Ketepatan',
+        saveProfile: 'Simpan Profil',
+        collectionDesc: 'Galeri seni roket, planet & watak comel!',
+        cmdStart: 'Mula',
+        emptySequence: 'Tekan arahan di bawah untuk memasukkan ke dalam urutan...',
+        greatJob: 'Hebat!',
+        missionComplete: 'Misi Selesai!',
+        score: 'Skor',
+        playAgain: 'Main Lagi',
+        backToMenu: 'Kembali ke Menu',
+        tryAgain: 'Cuba lagi!',
+        reachDestination: 'Bantu roket pergi ke planet!',
+        collectStarAndReach: 'Kumpul bintang dan pergi ke stesen angkasa!',
+        avoidAsteroid: 'Elak asteroid dan pergi ke planet sasaran!',
+        partSnapped: 'Bahagian dipasang dengan sempurna!',
+        tabBodies: 'Badan Roket',
+        tabWindows: 'Tingkap',
+        tabFins: 'Sayap & Sirip',
+        tabEngines: 'Enjin & Api',
+        tabPlanets: 'Planet',
+        tabMascot: 'Maskot',
+        placeholderStudentName: 'Nama Murid...',
+        placeholderFamilyCode: 'Kod Keluarga (Kosong secara lalai)...',
+        missionLabel: 'Misi',
+        levelLabel: 'Tahap',
+        clearAll: 'Padam semua',
+        soundToggleAria: 'Bunyi Audio',
+        langToggleAria: 'Tukar Bahasa'
+      },
+      en: {
+        title: 'Rocket Builder Coding Adventure',
+        subtitle: 'Build a rocket and help it explore space!',
+        headerSubtitle: 'Coding Adventure',
+        scoreLabel: 'Score:',
+        startPlaying: 'Start Playing',
+        playerProfile: 'Player Profile',
+        howToPlay: 'How to Play',
+        collection: 'Collection',
+        chooseLevel: 'Choose Level',
+        levelDesc: 'Choose a challenge to start the adventure',
+        level1Title: 'Level 1',
+        level1Sub: 'Rocket Starter (1-2 Commands)',
+        level2Title: 'Level 2',
+        level2Sub: 'Space Explorer (2-4 Commands)',
+        level3Title: 'Level 3',
+        level3Sub: 'Planet Mission (3-6 Commands)',
+        level4Title: 'Level 4',
+        level4Sub: 'Space Adventure (4-8 Commands)',
+        level5Title: 'Level 5',
+        level5Sub: 'Space Coding Adventure (5-10 Commands & Obstacles)',
+        chooseGame: 'Choose a Game',
+        fiveQuestions: '5 Questions',
+        tenQuestions: '10 Questions',
+        twentyQuestions: '20 Questions',
+        freePlay: 'Free Play',
+        hangarLabel: 'Space Hangar',
+        builderInstruction: 'Build your rocket parts!',
+        builderSubPrompt: 'Tap glowing parts to assemble your rocket:',
+        howToInstruction: 'Build the rocket, choose commands and help it reach the destination!',
+        howToStep1Title: '1. Build Rocket',
+        howToStep1Desc: 'Select rocket parts to assemble your cute rocket.',
+        howToStep2Title: '2. Sequence Commands',
+        howToStep2Desc: 'Tap arrow buttons to plot the rocket\'s path.',
+        howToStep3Title: '3. Press Start',
+        howToStep3Desc: 'Watch your rocket launch and follow the coding path!',
+        howToStep4Title: '4. Mission Accomplished!',
+        howToStep4Desc: 'Earn stars and celebrate with your space mascot!',
+        studentProfile: 'Student Profile',
+        familyCode: 'Family Code',
+        familyHistory: 'Family History & Stats',
+        gamesPlayed: 'Games Played',
+        questionsAnswered: 'Questions',
+        correctAnswers: 'Correct Answers',
+        bestScore: 'Best Score',
+        accuracy: 'Accuracy',
+        saveProfile: 'Save Profile',
+        collectionDesc: 'Gallery of cute rockets, planets & mascots!',
+        cmdStart: 'Start',
+        emptySequence: 'Tap commands below to build the sequence...',
+        greatJob: 'Great Job!',
+        missionComplete: 'Mission Complete!',
+        score: 'Score',
+        playAgain: 'Play Again',
+        backToMenu: 'Back to Menu',
+        tryAgain: 'Try again!',
+        reachDestination: 'Help the rocket reach the planet!',
+        collectStarAndReach: 'Collect the star and reach the space station!',
+        avoidAsteroid: 'Avoid the asteroid and reach the target planet!',
+        partSnapped: 'Part snapped in perfectly!',
+        tabBodies: 'Rocket Bodies',
+        tabWindows: 'Windows',
+        tabFins: 'Fins & Wings',
+        tabEngines: 'Engines & Flames',
+        tabPlanets: 'Planets',
+        tabMascot: 'Mascot',
+        placeholderStudentName: 'Student Name...',
+        placeholderFamilyCode: 'Family Code (Blank by default)...',
+        missionLabel: 'Mission',
+        levelLabel: 'Level',
+        clearAll: 'Clear all',
+        soundToggleAria: 'Audio Sound',
+        langToggleAria: 'Switch Language'
+      }
+    },
+
+    getPartName(partType) {
+      const isBm = (this.current === 'bm');
+      const map = {
+        body: isBm ? 'Badan' : 'Body',
+        window: isBm ? 'Tingkap' : 'Window',
+        fins: isBm ? 'Sayap' : 'Fins',
+        engine: isBm ? 'Enjin' : 'Engine',
+        flame: isBm ? 'Api' : 'Flame'
+      };
+      return map[partType] || partType;
+    },
+
+    setLang(lang) {
+      if (lang === 'ms') lang = 'bm';
+      this.current = lang;
+
+      const langLabel = document.getElementById('langCurrentLabel');
+      if (langLabel) langLabel.innerText = (lang === 'bm') ? 'BM' : 'EN';
+      document.documentElement.lang = (lang === 'bm') ? 'ms' : 'en';
+
+      // 1. Process all [data-i18n] tags throughout the DOM
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (this.data[lang] && this.data[lang][key]) {
+          el.innerText = this.data[lang][key];
+        }
+      });
+
+      // 2. Input placeholders
+      const nameInput = document.getElementById('inputStudentName');
+      if (nameInput) nameInput.placeholder = this.data[lang].placeholderStudentName;
+      const codeInput = document.getElementById('inputFamilyCode');
+      if (codeInput) codeInput.placeholder = this.data[lang].placeholderFamilyCode;
+
+      // 3. Clear button & Audio / Lang Aria
+      const btnClear = document.getElementById('btnClearSequence');
+      if (btnClear) {
+        btnClear.title = this.data[lang].clearAll;
+        btnClear.setAttribute('aria-label', this.data[lang].clearAll);
+      }
+      const btnSound = document.getElementById('btnSoundToggle');
+      if (btnSound) btnSound.setAttribute('aria-label', this.data[lang].soundToggleAria);
+      const btnLang = document.getElementById('btnLangToggle');
+      if (btnLang) btnLang.setAttribute('aria-label', this.data[lang].langToggleAria);
+
+      // 4. Direction arrow buttons aria-labels
+      const btnFwd = document.getElementById('btnCmdForward');
+      if (btnFwd) btnFwd.setAttribute('aria-label', (lang === 'bm') ? 'Depan' : 'Forward');
+      const btnBck = document.getElementById('btnCmdBack');
+      if (btnBck) btnBck.setAttribute('aria-label', (lang === 'bm') ? 'Belakang' : 'Back');
+      const btnUp = document.getElementById('btnCmdUp');
+      if (btnUp) btnUp.setAttribute('aria-label', (lang === 'bm') ? 'Atas' : 'Up');
+      const btnDown = document.getElementById('btnCmdDown');
+      if (btnDown) btnDown.setAttribute('aria-label', (lang === 'bm') ? 'Bawah' : 'Down');
+
+      // 5. Update session subtitle if present
+      const subtitle = document.getElementById('sessionSubtitle');
+      if (subtitle && Game) {
+        subtitle.innerText = `${this.data[lang].levelLabel} ${Game.level}`;
+      }
+
+      // 6. Update in-game mission badge & active instruction if running
+      if (Game && Game.currentMission) {
+        const missionBadge = document.getElementById('missionBadge');
+        if (missionBadge) {
+          missionBadge.innerText = `${this.data[lang].missionLabel} ${Game.currentQuestionIndex}`;
+        }
+
+        const instrEl = document.getElementById('missionInstructionText');
+        if (instrEl) {
+          if (Game.currentMission.collectibles.length > 0) {
+            instrEl.innerText = this.data[lang].collectStarAndReach;
+          } else if (Game.currentMission.obstacles.length > 0) {
+            instrEl.innerText = this.data[lang].avoidAsteroid;
+          } else {
+            instrEl.innerText = this.data[lang].reachDestination;
+          }
+        }
+
+        Game.currentMission.rocketConfig.requiredParts.forEach(partType => {
+          const btn = document.getElementById(`partBtn_${partType}`);
+          if (btn) {
+            const labelEl = btn.querySelector('.part-label');
+            const localizedPartName = this.getPartName(partType);
+            if (labelEl) labelEl.innerText = localizedPartName;
+            const ariaVerb = (lang === 'bm') ? 'Pasang' : 'Assemble';
+            btn.setAttribute('aria-label', `${ariaVerb} ${localizedPartName}`);
+          }
+        });
+
+        Game.renderSequence();
+      }
+
+      // 7. Update collection view if open
+      const colScreen = document.getElementById('screenCollection');
+      if (colScreen && !colScreen.classList.contains('hidden')) {
+        UI.renderCollectionTab(UI.currentCollectionTab || 'bodies');
+      }
+
+      localStorage.setItem('kinderKlub_lang', lang);
+    }
+  };
+
+  const RocketArt = {
+    colorFamilies: [
+      { name: 'pink', primary: '#FF6584', secondary: '#E83E65', highlight: '#FFA3B5' },
+      { name: 'cyan', primary: '#38BDF8', secondary: '#0284C7', highlight: '#BAE6FD' },
+      { name: 'purple', primary: '#A855F7', secondary: '#7E22CE', highlight: '#E9D5FF' },
+      { name: 'coral', primary: '#FF7E5F', secondary: '#EA580C', highlight: '#FED7AA' },
+      { name: 'lime', primary: '#84CC16', secondary: '#4D7C0F', highlight: '#D9F99D' },
+      { name: 'babyblue', primary: '#60A5FA', secondary: '#2563EB', highlight: '#BFDBFE' },
+      { name: 'yellow', primary: '#FACC15', secondary: '#CA8A04', highlight: '#FEF08A' },
+      { name: 'lavender', primary: '#C084FC', secondary: '#9333EA', highlight: '#F3E8FF' }
+    ],
+
+    colorNames: {
+      pink: { bm: 'Merah Jambu', en: 'Pink' },
+      cyan: { bm: 'Sian', en: 'Cyan' },
+      purple: { bm: 'Ungu', en: 'Purple' },
+      coral: { bm: 'Jingga Karang', en: 'Coral' },
+      lime: { bm: 'Hijau Limau', en: 'Lime' },
+      babyblue: { bm: 'Biru Lembut', en: 'Baby Blue' },
+      yellow: { bm: 'Kuning', en: 'Yellow' },
+      lavender: { bm: 'Lavender', en: 'Lavender' },
+      blue: { bm: 'Biru', en: 'Blue' }
+    },
+
+    planetColors: [
+      { name: 'blue', core: '#38BDF8', ring: '#0284C7', spots: '#7DD3FC' },
+      { name: 'purple', core: '#A855F7', ring: '#7E22CE', spots: '#C084FC' },
+      { name: 'yellow', core: '#FACC15', ring: '#EAB308', spots: '#FEF08A' },
+      { name: 'coral', core: '#FB923C', ring: '#EA580C', spots: '#FDBA74' },
+      { name: 'pink', core: '#F472B6', ring: '#DB2777', spots: '#FBCFE8' }
+    ],
+
+    generateRocketSvg(config, width = 120, height = 120, assembledParts = null) {
+      const c = config.colors;
+      const bColor = c.body.primary;
+      const bDark = c.body.secondary;
+      const bLight = c.body.highlight;
+      const fColor = c.fins ? c.fins.primary : '#38BDF8';
+      const fDark = c.fins ? c.fins.secondary : '#0284C7';
+      const wColor = c.window ? c.window.primary : '#38BDF8';
+
+      const has = (part) => assembledParts === null || assembledParts.includes(part);
+
+      return `
+      <svg viewBox="0 0 100 120" width="${width}" height="${height}" class="drop-shadow-lg overflow-visible">
+        ${has('flame') ? `
+        <g id="rocketFlameG" transform="translate(50, 94)">
+          <path d="M-10,0 Q0,26 10,0 Z" fill="#F97316"/>
+          <path d="M-6,0 Q0,16 6,0 Z" fill="#FDE047"/>
+        </g>` : (assembledParts ? `
+        <g transform="translate(50, 94)" opacity="0.25">
+          <path d="M-10,0 Q0,26 10,0 Z" fill="none" stroke="#F97316" stroke-width="1.5" stroke-dasharray="3 3"/>
+        </g>` : '')}
+
+        ${has('fins') ? `
+        <path d="M30,70 L14,88 L30,86 Z" fill="${fColor}" stroke="#1E293B" stroke-width="2"/>
+        <path d="M30,70 L22,86 L30,86 Z" fill="${fDark}"/>` : (assembledParts ? `
+        <path d="M30,70 L14,88 L30,86 Z" fill="none" stroke="#38BDF8" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.3"/>` : '')}
+
+        ${has('fins') ? `
+        <path d="M70,70 L86,88 L70,86 Z" fill="${fColor}" stroke="#1E293B" stroke-width="2"/>
+        <path d="M70,70 L78,86 L70,86 Z" fill="${fDark}"/>` : (assembledParts ? `
+        <path d="M70,70 L86,88 L70,86 Z" fill="none" stroke="#38BDF8" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.3"/>` : '')}
+
+        ${has('body') ? `
+        <path d="M50,14 C66,32 72,62 70,92 L30,92 C28,62 34,32 50,14 Z" fill="${bColor}" stroke="#1E293B" stroke-width="2.5"/>
+        <path d="M50,18 C40,34 36,60 36,88" stroke="${bLight}" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.6"/>
+        <path d="M50,14 C56,22 62,32 64,38 L36,38 C38,32 44,22 50,14 Z" fill="${bDark}"/>` : (assembledParts ? `
+        <path d="M50,14 C66,32 72,62 70,92 L30,92 C28,62 34,32 50,14 Z" fill="rgba(56, 189, 248, 0.05)" stroke="#38BDF8" stroke-width="2" stroke-dasharray="4 4" opacity="0.4"/>` : '')}
+
+        ${has('window') ? `
+        <circle cx="50" cy="54" r="14" fill="#0F172A" stroke="${wColor}" stroke-width="3.5"/>
+        <circle cx="50" cy="54" r="10" fill="#38BDF8"/>
+        <path d="M44,48 Q50,44 56,48" stroke="#FFF" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.8"/>` : (assembledParts ? `
+        <circle cx="50" cy="54" r="14" fill="none" stroke="#38BDF8" stroke-width="2" stroke-dasharray="3 3" opacity="0.35"/>` : '')}
+
+        ${has('engine') ? `
+        <polygon points="40,92 60,92 64,98 36,98" fill="#475569" stroke="#1E293B" stroke-width="1.5"/>` : (assembledParts ? `
+        <polygon points="40,92 60,92 64,98 36,98" fill="none" stroke="#38BDF8" stroke-width="1.5" stroke-dasharray="2 2" opacity="0.35"/>` : '')}
+      </svg>`;
+    },
+
+    getPartSvg(partType, colors, size = 64) {
+      switch (partType) {
+        case 'body':
+          return `
+          <svg viewBox="0 0 70 80" width="${size}" height="${size}">
+            <path d="M35,6 C48,22 52,48 50,72 L20,72 C18,48 22,22 35,6 Z" fill="${colors.body.primary}" stroke="#FFF" stroke-width="2"/>
+            <path d="M35,6 C40,16 46,26 48,32 L22,32 C24,26 30,16 35,6 Z" fill="${colors.body.secondary}"/>
+          </svg>`;
+        case 'window':
+          return `
+          <svg viewBox="0 0 50 50" width="${size}" height="${size}">
+            <circle cx="25" cy="25" r="18" fill="#0F172A" stroke="${colors.window.primary}" stroke-width="4"/>
+            <circle cx="25" cy="25" r="13" fill="#38BDF8"/>
+            <path d="M18,18 Q25,13 32,18" stroke="#FFF" stroke-width="3" fill="none" stroke-linecap="round"/>
+          </svg>`;
+        case 'fins':
+          return `
+          <svg viewBox="0 0 60 50" width="${size}" height="${size}">
+            <polygon points="12,10 2,42 22,38" fill="${colors.fins.primary}" stroke="#FFF" stroke-width="2"/>
+            <polygon points="48,10 58,42 38,38" fill="${colors.fins.primary}" stroke="#FFF" stroke-width="2"/>
+          </svg>`;
+        case 'engine':
+          return `
+          <svg viewBox="0 0 50 40" width="${size}" height="${size}">
+            <polygon points="15,6 35,6 40,24 10,24" fill="#64748B" stroke="#FFF" stroke-width="2"/>
+            <line x1="20" y1="24" x2="20" y2="30" stroke="#94A3B8" stroke-width="3"/>
+            <line x1="30" y1="24" x2="30" y2="30" stroke="#94A3B8" stroke-width="3"/>
+          </svg>`;
+        case 'flame':
+          return `
+          <svg viewBox="0 0 40 50" width="${size}" height="${size}">
+            <path d="M10,4 Q20,44 30,4 Z" fill="#F97316" stroke="#FFF" stroke-width="1.5"/>
+            <path d="M14,4 Q20,30 26,4 Z" fill="#FDE047"/>
+          </svg>`;
+        default:
+          return '';
+      }
+    },
+
+    getPlanetSvg(planetColor, size = 60) {
+      return `
+      <svg viewBox="0 0 80 80" width="${size}" height="${size}" class="drop-shadow-lg">
+        <defs>
+          <radialGradient id="plGrad_${planetColor.name}" cx="35%" cy="35%" r="65%">
+            <stop offset="0%" stop-color="${planetColor.spots}"/>
+            <stop offset="65%" stop-color="${planetColor.core}"/>
+            <stop offset="100%" stop-color="${planetColor.ring}"/>
+          </radialGradient>
+        </defs>
+        <ellipse cx="40" cy="40" rx="36" ry="12" fill="none" stroke="${planetColor.ring}" stroke-width="5" transform="rotate(-20 40 40)"/>
+        <circle cx="40" cy="40" r="26" fill="url(#plGrad_${planetColor.name})"/>
+        <ellipse cx="40" cy="40" rx="36" ry="12" fill="none" stroke="${planetColor.spots}" stroke-width="2.5" stroke-dasharray="14 12" transform="rotate(-20 40 40)"/>
+      </svg>`;
+    }
+  };
+
+  const ProfileManager = {
+    key: 'kinderKlub_rocketCoding_playerProfile',
+    data: {
+      studentName: '',
+      familyCode: '',
+      gamesPlayed: 0,
+      questionsAnswered: 0,
+      correctAnswers: 0,
+      bestScore: 0,
+      recentActivity: []
+    },
+
+    load() {
+      try {
+        const saved = localStorage.getItem(this.key);
+        if (saved) {
+          this.data = { ...this.data, ...JSON.parse(saved) };
+        }
+      } catch (e) {
+        console.warn('LocalStorage load error:', e);
+      }
+      this.updateUI();
+    },
+
+    save() {
+      const nameInput = document.getElementById('inputStudentName');
+      const codeInput = document.getElementById('inputFamilyCode');
+      if (nameInput) this.data.studentName = nameInput.value.trim();
+      if (codeInput) this.data.familyCode = codeInput.value.trim();
+
+      try {
+        localStorage.setItem(this.key, JSON.stringify(this.data));
+        const toast = document.createElement('div');
+        toast.className = 'fixed bottom-12 bg-emerald-600 text-white font-bold px-4 py-2 rounded-xl z-50 shadow-xl';
+        toast.innerText = (I18N.current === 'bm') ? 'Profil berjaya disimpan!' : 'Profile saved successfully!';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
+      } catch (e) {
+        console.warn('LocalStorage save error:', e);
+      }
+      this.updateUI();
+    },
+
+    recordSession(score, totalQuestions, correct) {
+      this.data.gamesPlayed += 1;
+      this.data.questionsAnswered += totalQuestions;
+      this.data.correctAnswers += correct;
+      if (score > this.data.bestScore) {
+        this.data.bestScore = score;
+      }
+      try {
+        localStorage.setItem(this.key, JSON.stringify(this.data));
+      } catch (e) {}
+      this.updateUI();
+    },
+
+    updateUI() {
+      const nameInput = document.getElementById('inputStudentName');
+      const codeInput = document.getElementById('inputFamilyCode');
+      if (nameInput) nameInput.value = this.data.studentName || '';
+      if (codeInput) codeInput.value = this.data.familyCode || '';
+
+      const statGames = document.getElementById('statGamesPlayed');
+      const statQ = document.getElementById('statQuestions');
+      const statBest = document.getElementById('statBestScore');
+      const statAcc = document.getElementById('statAccuracy');
+
+      if (statGames) statGames.innerText = this.data.gamesPlayed;
+      if (statQ) statQ.innerText = this.data.questionsAnswered;
+      if (statBest) statBest.innerText = this.data.bestScore;
+
+      const acc = this.data.questionsAnswered > 0 
+        ? Math.round((this.data.correctAnswers / this.data.questionsAnswered) * 100) 
+        : 100;
+      if (statAcc) statAcc.innerText = `${acc}%`;
+    }
+  };
+
+  const MissionGenerator = {
+    usedSignatures: new Set(),
+
+    generate(level) {
+      let attempts = 0;
+      let mission = null;
+
+      while (attempts < 60) {
+        attempts++;
+        mission = this.buildCandidate(level);
+        const sig = `${mission.start.x},${mission.start.y}->${mission.target.x},${mission.target.y};cmds:${mission.solution.join('-')};color:${mission.rocketConfig.colors.body.name}`;
+        if (!this.usedSignatures.has(sig)) {
+          this.usedSignatures.add(sig);
+          break;
+        }
+      }
+      return mission;
+    },
+
+    buildCandidate(level) {
+      const cols = 5;
+      const rows = 4;
+
+      const shuffledColors = [...RocketArt.colorFamilies].sort(() => 0.5 - Math.random());
+      const rocketColors = {
+        body: shuffledColors[0],
+        fins: shuffledColors[1],
+        window: shuffledColors[2],
+        engine: shuffledColors[3]
+      };
+
+      let requiredPartsCount = 3;
+      let availableParts = ['body', 'window', 'engine'];
+      if (level === 2) {
+        requiredPartsCount = Math.random() > 0.5 ? 3 : 4;
+        availableParts = ['body', 'window', 'fins', 'engine'].slice(0, requiredPartsCount);
+      } else if (level === 3) {
+        requiredPartsCount = 4;
+        availableParts = ['body', 'window', 'fins', 'engine'];
+      } else if (level >= 4) {
+        requiredPartsCount = 5;
+        availableParts = ['body', 'window', 'fins', 'engine', 'flame'];
+      }
+
+      let pathLength = 2;
+      let allowVertical = false;
+
+      if (level === 1) {
+        pathLength = Math.floor(Math.random() * 2) + 1;
+      } else if (level === 2) {
+        pathLength = Math.floor(Math.random() * 2) + 2;
+        allowVertical = true;
+      } else if (level === 3) {
+        pathLength = Math.floor(Math.random() * 2) + 3;
+        allowVertical = true;
+      } else if (level === 4) {
+        pathLength = Math.floor(Math.random() * 3) + 4;
+        allowVertical = true;
+      } else {
+        pathLength = Math.floor(Math.random() * 3) + 5;
+        allowVertical = true;
+      }
+
+      const startX = 0;
+      const startY = allowVertical ? Math.floor(Math.random() * (rows - 2)) + 1 : Math.floor(Math.random() * rows);
+
+      let currentX = startX;
+      let currentY = startY;
+      const path = [{ x: currentX, y: currentY }];
+      const solution = [];
+
+      for (let i = 0; i < pathLength; i++) {
+        const possibleMoves = [];
+
+        if (currentX + 1 < cols) {
+          possibleMoves.push({ dir: 'FORWARD', dx: 1, dy: 0 });
+        }
+        if (allowVertical) {
+          if (currentY - 1 >= 0) possibleMoves.push({ dir: 'UP', dx: 0, dy: -1 });
+          if (currentY + 1 < rows) possibleMoves.push({ dir: 'DOWN', dx: 0, dy: 1 });
+        }
+
+        if (possibleMoves.length === 0) break;
+        let chosen;
+        if (possibleMoves.some(m => m.dir === 'FORWARD') && Math.random() > 0.4) {
+          chosen = possibleMoves.find(m => m.dir === 'FORWARD');
+        } else {
+          chosen = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+        }
+
+        currentX += chosen.dx;
+        currentY += chosen.dy;
+        path.push({ x: currentX, y: currentY });
+        solution.push(chosen.dir);
+      }
+
+      const targetPos = path[path.length - 1];
+      const obstacles = [];
+      const collectibles = [];
+
+      if (level >= 3) {
+        for (let x = 1; x < cols - 1; x++) {
+          for (let y = 0; y < rows; y++) {
+            if (!path.some(p => p.x === x && p.y === y)) {
+              if (Math.random() > 0.6 && obstacles.length < (level >= 4 ? 2 : 1)) {
+                obstacles.push({ x, y, type: 'asteroid' });
+              }
+            }
+          }
+        }
+      }
+
+      if (level >= 4 && path.length > 2) {
+        const midPoint = path[Math.floor(path.length / 2)];
+        collectibles.push({ x: midPoint.x, y: midPoint.y, type: 'star' });
+      }
+
+      const targetColor = RocketArt.planetColors[Math.floor(Math.random() * RocketArt.planetColors.length)];
+
+      return {
+        level,
+        rocketConfig: {
+          colors: rocketColors,
+          requiredParts: availableParts
+        },
+        start: { x: startX, y: startY },
+        target: targetPos,
+        targetColor,
+        obstacles,
+        collectibles,
+        path,
+        solution
+      };
+    }
+  };
+
+  const UI = {
+    screens: [
+      'screenHome',
+      'screenLevelSelect',
+      'screenSessionSelect',
+      'screenRocketBuilder',
+      'screenAdventure',
+      'screenResult',
+      'screenHowToPlay',
+      'screenProfile',
+      'screenCollection'
+    ],
+    currentCollectionTab: 'bodies',
+
+    showScreen(screenId) {
+      SoundFX.playPop();
+      this.screens.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          if (id === screenId) {
+            el.classList.remove('hidden');
+            el.classList.add('flex');
+          } else {
+            el.classList.add('hidden');
+            el.classList.remove('flex');
+          }
+        }
+      });
+
+      const headerScore = document.getElementById('headerScoreCard');
+      if (headerScore) {
+        if (screenId === 'screenAdventure' || screenId === 'screenRocketBuilder') {
+          headerScore.classList.remove('hidden');
+          headerScore.classList.add('flex');
+        } else {
+          headerScore.classList.add('hidden');
+          headerScore.classList.remove('flex');
+        }
+      }
+    },
+
+    renderCollectionTab(tab) {
+      this.currentCollectionTab = tab;
+      const grid = document.getElementById('collectionItemsGrid');
+      if (!grid) return;
+      grid.innerHTML = '';
+
+      ['tabBodies', 'tabWindows', 'tabFins', 'tabEngines', 'tabPlanets', 'tabMascot'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.className = 'px-3 py-1.5 rounded-xl bg-space-800 text-xs font-bold text-white border border-indigo-400/50';
+        }
+      });
+      const activeBtnMap = {
+        bodies: 'tabBodies',
+        windows: 'tabWindows',
+        fins: 'tabFins',
+        engines: 'tabEngines',
+        planets: 'tabPlanets',
+        mascot: 'tabMascot'
+      };
+      const activeEl = document.getElementById(activeBtnMap[tab]);
+      if (activeEl) {
+        activeEl.className = 'px-3 py-1.5 rounded-xl bg-indigo-600 text-xs font-bold text-white border-2 border-cyan-400 shadow-md';
+      }
+
+      const isBm = (I18N.current === 'bm');
+
+      if (tab === 'bodies') {
+        RocketArt.colorFamilies.forEach(c => {
+          const card = document.createElement('div');
+          card.className = 'bg-space-900/80 p-3 rounded-2xl border border-indigo-500/30 flex flex-col items-center justify-center';
+          const localizedColor = (RocketArt.colorNames[c.name] && RocketArt.colorNames[c.name][I18N.current]) 
+            ? RocketArt.colorNames[c.name][I18N.current] 
+            : c.name;
+          card.innerHTML = `
+            ${RocketArt.getPartSvg('body', { body: c }, 70)}
+            <span class="text-xs font-extrabold text-cyan-200 mt-2 capitalize">${localizedColor}</span>
+          `;
+          grid.appendChild(card);
+        });
+      } else if (tab === 'windows') {
+        RocketArt.colorFamilies.slice(0, 6).forEach(c => {
+          const card = document.createElement('div');
+          card.className = 'bg-space-900/80 p-3 rounded-2xl border border-indigo-500/30 flex flex-col items-center justify-center';
+          card.innerHTML = `
+            ${RocketArt.getPartSvg('window', { window: c }, 60)}
+            <span class="text-xs font-extrabold text-cyan-200 mt-2">${isBm ? 'Tingkap' : 'Window'}</span>
+          `;
+          grid.appendChild(card);
+        });
+      } else if (tab === 'fins') {
+        RocketArt.colorFamilies.slice(0, 6).forEach(c => {
+          const card = document.createElement('div');
+          card.className = 'bg-space-900/80 p-3 rounded-2xl border border-indigo-500/30 flex flex-col items-center justify-center';
+          card.innerHTML = `
+            ${RocketArt.getPartSvg('fins', { fins: c }, 65)}
+            <span class="text-xs font-extrabold text-cyan-200 mt-2">${isBm ? 'Sayap' : 'Fins'}</span>
+          `;
+          grid.appendChild(card);
+        });
+      } else if (tab === 'engines') {
+        RocketArt.colorFamilies.slice(0, 4).forEach(() => {
+          const card = document.createElement('div');
+          card.className = 'bg-space-900/80 p-3 rounded-2xl border border-indigo-500/30 flex flex-col items-center justify-center';
+          card.innerHTML = `
+            ${RocketArt.getPartSvg('engine', {}, 60)}
+            <span class="text-xs font-extrabold text-cyan-200 mt-2">${isBm ? 'Enjin' : 'Engine'}</span>
+          `;
+          grid.appendChild(card);
+        });
+      } else if (tab === 'planets') {
+        RocketArt.planetColors.forEach(p => {
+          const card = document.createElement('div');
+          card.className = 'bg-space-900/80 p-3 rounded-2xl border border-indigo-500/30 flex flex-col items-center justify-center';
+          const localizedColor = (RocketArt.colorNames[p.name] && RocketArt.colorNames[p.name][I18N.current]) 
+            ? RocketArt.colorNames[p.name][I18N.current] 
+            : p.name;
+          card.innerHTML = `
+            ${RocketArt.getPlanetSvg(p, 65)}
+            <span class="text-xs font-extrabold text-amber-200 mt-2 capitalize">${localizedColor}</span>
+          `;
+          grid.appendChild(card);
+        });
+      } else if (tab === 'mascot') {
+        const card = document.createElement('div');
+        card.className = 'col-span-2 sm:col-span-3 bg-space-900/80 p-4 rounded-2xl border border-indigo-500/30 flex items-center justify-center gap-4';
+        card.innerHTML = `
+          <div class="w-20 h-20 bg-purple-700/80 rounded-2xl p-2 border-2 border-purple-400 flex items-center justify-center">
+            <svg viewBox="0 0 100 100" class="w-full h-full">
+              <ellipse cx="50" cy="50" rx="38" ry="36" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="4"/>
+              <ellipse cx="50" cy="50" rx="28" ry="24" fill="#0F172A"/>
+              <path d="M30,55 L50,68 L70,55 L65,42 L35,42 Z" fill="#FB923C"/>
+              <polygon points="32,42 26,28 42,36" fill="#F97316"/>
+              <polygon points="68,42 74,28 58,36" fill="#F97316"/>
+              <circle cx="43" cy="50" r="3.5" fill="#FFF"/>
+              <circle cx="57" cy="50" r="3.5" fill="#FFF"/>
+              <ellipse cx="50" cy="58" rx="2.5" ry="1.8" fill="#431407"/>
+            </svg>
+          </div>
+          <div>
+            <div class="text-base font-black text-amber-300">Ollie The Space Fox</div>
+            <div class="text-xs font-semibold text-slate-300">${isBm ? 'Rakan setia pengembaraan kod angkasa anda!' : 'Your faithful space coding adventure pal!'}</div>
+          </div>
+        `;
+        grid.appendChild(card);
+      }
+    }
+  };
+
+  const Game = {
+    level: 1,
+    sessionLength: 5,
+    currentQuestionIndex: 0,
+    score: 0,
+    correctCount: 0,
+    currentMission: null,
+    assembledParts: [],
+    userCommands: [],
+    isExecuting: false,
+
+    init() {
+      const btnHome = document.getElementById('btnHeaderHome');
+      if (btnHome) btnHome.onclick = () => UI.showScreen('screenHome');
+
+      const btnStart = document.getElementById('btnHomeStart');
+      if (btnStart) btnStart.onclick = () => UI.showScreen('screenLevelSelect');
+
+      const btnProfile = document.getElementById('btnHomeProfile');
+      if (btnProfile) btnProfile.onclick = () => UI.showScreen('screenProfile');
+
+      const btnHowTo = document.getElementById('btnHomeHowTo');
+      if (btnHowTo) btnHowTo.onclick = () => UI.showScreen('screenHowToPlay');
+
+      const btnCol = document.getElementById('btnHomeCollection');
+      if (btnCol) {
+        btnCol.onclick = () => {
+          UI.showScreen('screenCollection');
+          UI.renderCollectionTab('bodies');
+        };
+      }
+
+      const btnSound = document.getElementById('btnSoundToggle');
+      if (btnSound) btnSound.onclick = () => SoundFX.toggle();
+
+      const btnLang = document.getElementById('btnLangToggle');
+      if (btnLang) {
+        btnLang.onclick = () => {
+          I18N.setLang(I18N.current === 'bm' ? 'en' : 'bm');
+        };
+      }
+
+      const btnClear = document.getElementById('btnClearSequence');
+      if (btnClear) btnClear.onclick = () => this.clearCommands();
+
+      let savedLang = localStorage.getItem('kinderKlub_lang') || 'bm';
+      if (savedLang === 'ms') savedLang = 'bm';
+      I18N.setLang(savedLang);
+
+      ProfileManager.load();
+    },
+
+    selectLevel(lvl) {
+      SoundFX.playPop();
+      this.level = lvl;
+      const subtitle = document.getElementById('sessionSubtitle');
+      if (subtitle) {
+        subtitle.innerText = `${I18N.data[I18N.current].levelLabel} ${lvl}`;
+      }
+      UI.showScreen('screenSessionSelect');
+    },
+
+    startSession(length) {
+      SoundFX.playPop();
+      this.sessionLength = length;
+      this.currentQuestionIndex = 0;
+      this.score = 0;
+      this.correctCount = 0;
+      this.updateScoreBadge();
+      this.nextMission();
+    },
+
+    nextMission() {
+      if (this.currentQuestionIndex >= this.sessionLength && this.sessionLength !== Infinity) {
+        this.finishSession();
+        return;
+      }
+
+      this.currentQuestionIndex++;
+      this.currentMission = MissionGenerator.generate(this.level);
+      this.assembledParts = [];
+      this.userCommands = [];
+      this.isExecuting = false;
+
+      const qBadge = document.getElementById('questionCounterBadge');
+      if (qBadge) {
+        qBadge.innerText = (this.sessionLength === Infinity) 
+          ? `${this.currentQuestionIndex} / ∞` 
+          : `${this.currentQuestionIndex} / ${this.sessionLength}`;
+      }
+
+      const missionBadge = document.getElementById('missionBadge');
+      if (missionBadge) {
+        missionBadge.innerText = `${I18N.data[I18N.current].missionLabel} ${this.currentQuestionIndex}`;
+      }
+
+      const instrEl = document.getElementById('missionInstructionText');
+      if (instrEl) {
+        if (this.currentMission.collectibles.length > 0) {
+          instrEl.innerText = I18N.data[I18N.current].collectStarAndReach;
+        } else if (this.currentMission.obstacles.length > 0) {
+          instrEl.innerText = I18N.data[I18N.current].avoidAsteroid;
+        } else {
+          instrEl.innerText = I18N.data[I18N.current].reachDestination;
+        }
+      }
+
+      this.setupAssemblyHangar();
+      UI.showScreen('screenRocketBuilder');
+    },
+
+    setupAssemblyHangar() {
+      const container = document.getElementById('availablePartsGrid');
+      const slot = document.getElementById('blueprintRocketSlot');
+      const progressBadge = document.getElementById('assemblyProgressBadge');
+      const feedback = document.getElementById('assemblyFeedback');
+
+      if (!container || !slot) return;
+      container.innerHTML = '';
+      if (feedback) feedback.innerText = '';
+
+      const reqParts = this.currentMission.rocketConfig.requiredParts;
+      if (progressBadge) progressBadge.innerText = `0 / ${reqParts.length}`;
+
+      slot.innerHTML = RocketArt.generateRocketSvg(this.currentMission.rocketConfig, 140, 155, []);
+
+      reqParts.forEach((partType) => {
+        const btn = document.createElement('button');
+        btn.id = `partBtn_${partType}`;
+        btn.className = 'btn-chunky bg-space-900 border-2 border-indigo-400/60 p-2.5 rounded-2xl flex flex-col items-center justify-center w-24 h-24 sm:w-28 sm:h-28 active:scale-95 transition-all';
+        const localizedPartName = I18N.getPartName(partType);
+        const ariaVerb = (I18N.current === 'bm') ? 'Pasang' : 'Assemble';
+        btn.setAttribute('aria-label', `${ariaVerb} ${localizedPartName}`);
+        btn.innerHTML = `
+          ${RocketArt.getPartSvg(partType, this.currentMission.rocketConfig.colors, 52)}
+          <span class="part-label text-[11px] font-extrabold text-cyan-200 mt-1 capitalize">${localizedPartName}</span>
+        `;
+        btn.onclick = () => this.snapPart(partType, btn);
+        container.appendChild(btn);
+      });
+
+      this.updateNextBlinkingPart();
+    },
+
+    updateNextBlinkingPart() {
+      const reqParts = this.currentMission.rocketConfig.requiredParts;
+      reqParts.forEach(p => {
+        const b = document.getElementById(`partBtn_${p}`);
+        if (b) b.classList.remove('part-blinking');
+      });
+
+      const nextPart = reqParts.find(p => !this.assembledParts.includes(p));
+      if (nextPart) {
+        const nextBtn = document.getElementById(`partBtn_${nextPart}`);
+        if (nextBtn) {
+          nextBtn.classList.add('part-blinking');
+        }
+      }
+    },
+
+    snapPart(partType, buttonElement) {
+      if (this.assembledParts.includes(partType)) return;
+
+      SoundFX.playSnap();
+      this.assembledParts.push(partType);
+      buttonElement.classList.remove('part-blinking');
+      buttonElement.classList.add('opacity-30', 'pointer-events-none', 'scale-90');
+
+      const reqParts = this.currentMission.rocketConfig.requiredParts;
+      const progressBadge = document.getElementById('assemblyProgressBadge');
+      if (progressBadge) progressBadge.innerText = `${this.assembledParts.length} / ${reqParts.length}`;
+
+      const feedback = document.getElementById('assemblyFeedback');
+      if (feedback) feedback.innerText = I18N.data[I18N.current].partSnapped;
+
+      const slot = document.getElementById('blueprintRocketSlot');
+      if (slot) {
+        slot.innerHTML = RocketArt.generateRocketSvg(this.currentMission.rocketConfig, 140, 155, this.assembledParts);
+      }
+
+      this.updateNextBlinkingPart();
+
+      if (this.assembledParts.length === reqParts.length) {
+        SoundFX.playCelebration();
+        setTimeout(() => {
+          this.setupAdventureWorld();
+          UI.showScreen('screenAdventure');
+        }, 700);
+      }
+    },
+
+    setupAdventureWorld() {
+      const gridLayer = document.getElementById('gridTilesLayer');
+      const propsLayer = document.getElementById('worldPropsLayer');
+      const reactionLayer = document.getElementById('reactionFxLayer');
+      const rocketActor = document.getElementById('rocketActor');
+
+      if (!gridLayer || !propsLayer || !rocketActor) return;
+
+      gridLayer.innerHTML = '';
+      propsLayer.innerHTML = '';
+      if (reactionLayer) reactionLayer.innerHTML = '';
+
+      const cols = 5;
+      const rows = 4;
+      const cellW = 140;
+      const cellH = 95;
+      const originX = 110;
+      const originY = 90;
+
+      for (let x = 0; x < cols; x++) {
+        for (let y = 0; y < rows; y++) {
+          const posX = originX + (x * cellW);
+          const posY = originY + (y * cellH);
+
+          const tile = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          tile.setAttribute('x', posX - 48);
+          tile.setAttribute('y', posY - 32);
+          tile.setAttribute('width', '96');
+          tile.setAttribute('height', '64');
+          tile.setAttribute('rx', '14');
+          tile.setAttribute('fill', '#151C44');
+          tile.setAttribute('stroke', '#4338CA');
+          tile.setAttribute('stroke-width', '2');
+          tile.setAttribute('opacity', '0.7');
+          gridLayer.appendChild(tile);
+        }
+      }
+
+      const targetPos = this.currentMission.target;
+      const targetPixelX = originX + (targetPos.x * cellW);
+      const targetPixelY = originY + (targetPos.y * cellH);
+
+      const planetGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      planetGroup.setAttribute('transform', `translate(${targetPixelX - 40}, ${targetPixelY - 40})`);
+      planetGroup.setAttribute('id', 'targetPlanetElement');
+      planetGroup.innerHTML = RocketArt.getPlanetSvg(this.currentMission.targetColor, 80);
+      propsLayer.appendChild(planetGroup);
+
+      this.currentMission.obstacles.forEach(obs => {
+        const obsPixelX = originX + (obs.x * cellW);
+        const obsPixelY = originY + (obs.y * cellH);
+        const asteroidG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        asteroidG.setAttribute('transform', `translate(${obsPixelX - 25}, ${obsPixelY - 25})`);
+        asteroidG.innerHTML = `
+          <polygon points="25,5 42,15 48,35 32,48 10,42 4,22" fill="#64748B" stroke="#94A3B8" stroke-width="2.5"/>
+          <circle cx="20" cy="22" r="4" fill="#334155"/>
+          <circle cx="34" cy="30" r="3" fill="#334155"/>
+        `;
+        propsLayer.appendChild(asteroidG);
+      });
+
+      this.currentMission.collectibles.forEach(col => {
+        const colPixelX = originX + (col.x * cellW);
+        const colPixelY = originY + (col.y * cellH);
+        const starG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        starG.setAttribute('transform', `translate(${colPixelX - 20}, ${colPixelY - 20})`);
+        starG.setAttribute('id', `collectible_${col.x}_${col.y}`);
+        starG.innerHTML = `
+          <polygon points="20,2 25,14 38,15 28,24 31,37 20,29 9,37 12,24 2,15 15,14" fill="#FACC15" stroke="#FFE779" stroke-width="2"/>
+        `;
+        propsLayer.appendChild(starG);
+      });
+
+      const startPixelX = originX + (this.currentMission.start.x * cellW);
+      const startPixelY = originY + (this.currentMission.start.y * cellH);
+
+      rocketActor.innerHTML = RocketArt.generateRocketSvg(this.currentMission.rocketConfig, 80, 80);
+      rocketActor.setAttribute('transform', `translate(${startPixelX - 40}, ${startPixelY - 40}) rotate(0)`);
+
+      this.clearCommands();
+      const tray = document.getElementById('codingTray');
+      if (tray) tray.classList.remove('tray-hidden');
+    },
+
+    addCommand(cmd) {
+      if (this.isExecuting) return;
+      if (this.userCommands.length >= 10) return;
+
+      SoundFX.playPop();
+      this.userCommands.push(cmd);
+      this.renderSequence();
+    },
+
+    clearCommands() {
+      if (this.isExecuting) return;
+      SoundFX.playPop();
+      this.userCommands = [];
+      this.renderSequence();
+    },
+
+    renderSequence() {
+      const list = document.getElementById('sequenceList');
+      if (!list) return;
+
+      if (this.userCommands.length === 0) {
+        list.innerHTML = `
+          <span id="emptySequencePrompt" data-i18n="emptySequence" class="text-xs sm:text-sm font-semibold text-slate-400 pl-2">
+            ${I18N.data[I18N.current].emptySequence}
+          </span>
+        `;
+        return;
+      }
+
+      list.innerHTML = '';
+      this.userCommands.forEach((cmd) => {
+        const badge = document.createElement('div');
+        let colorClass = 'bg-cyan-500 border-cyan-300';
+        let iconSvg = '<svg viewBox="0 0 24 24" class="w-5 h-5 fill-white"><path d="M5 13h11.86l-5.43 5.43 1.42 1.42L21.14 12l-8.29-7.85-1.42 1.42L16.86 11H5v2z"/></svg>';
+        let ariaLabel = (I18N.current === 'bm') ? 'Depan' : 'Forward';
+
+        if (cmd === 'BACK') {
+          colorClass = 'bg-blue-600 border-blue-400';
+          ariaLabel = (I18N.current === 'bm') ? 'Belakang' : 'Back';
+          iconSvg = '<svg viewBox="0 0 24 24" class="w-5 h-5 fill-white"><path d="M19 11H7.14l5.43-5.43-1.42-1.42L2.86 12l8.29 7.85 1.42-1.42L7.14 13H19v-2z"/></svg>';
+        } else if (cmd === 'UP') {
+          colorClass = 'bg-purple-600 border-purple-400';
+          ariaLabel = (I18N.current === 'bm') ? 'Atas' : 'Up';
+          iconSvg = '<svg viewBox="0 0 24 24" class="w-5 h-5 fill-white"><path d="M13 19V7.14l5.43 5.43 1.42-1.42L12 2.86l-7.85 8.29 1.42 1.42L11 7.14V19h2z"/></svg>';
+        } else if (cmd === 'DOWN') {
+          colorClass = 'bg-pink-600 border-pink-400';
+          ariaLabel = (I18N.current === 'bm') ? 'Bawah' : 'Down';
+          iconSvg = '<svg viewBox="0 0 24 24" class="w-5 h-5 fill-white"><path d="M11 5v11.86l-5.43-5.43-1.42 1.42L12 21.14l7.85-8.29-1.42-1.42L13 16.86V5h-2z"/></svg>';
+        }
+
+        badge.className = `flex items-center justify-center text-white font-bold w-9 h-9 sm:w-10 sm:h-10 rounded-xl border-2 ${colorClass} flex-shrink-0 shadow-sm`;
+        badge.setAttribute('aria-label', ariaLabel);
+        badge.innerHTML = iconSvg;
+        list.appendChild(badge);
+      });
+    },
+
+    async executeLaunch() {
+      if (this.isExecuting || this.userCommands.length === 0) return;
+      this.isExecuting = true;
+
+      const tray = document.getElementById('codingTray');
+      if (tray) tray.classList.add('tray-hidden');
+
+      SoundFX.playWhoosh();
+
+      const cellW = 140;
+      const cellH = 95;
+      const originX = 110;
+      const originY = 90;
+
+      let currentX = this.currentMission.start.x;
+      let currentY = this.currentMission.start.y;
+      const rocketActor = document.getElementById('rocketActor');
+      const viewport = document.getElementById('worldViewport');
+
+      for (let i = 0; i < this.userCommands.length; i++) {
+        const cmd = this.userCommands[i];
+
+        let targetAngle = 0;
+        if (cmd === 'FORWARD') {
+          currentX = Math.min(4, currentX + 1);
+          targetAngle = 0;
+        } else if (cmd === 'BACK') {
+          currentX = Math.max(0, currentX - 1);
+          targetAngle = 180;
+        } else if (cmd === 'UP') {
+          currentY = Math.max(0, currentY - 1);
+          targetAngle = -90;
+        } else if (cmd === 'DOWN') {
+          currentY = Math.min(3, currentY + 1);
+          targetAngle = 90;
+        }
+
+        const pixelX = originX + (currentX * cellW);
+        const pixelY = originY + (currentY * cellH);
+
+        rocketActor.setAttribute('transform', `translate(${pixelX - 40}, ${pixelY - 40}) rotate(${targetAngle} 40 40)`);
+
+        const cameraShiftX = (2 - currentX) * 25;
+        const cameraShiftY = (1.5 - currentY) * 20;
+        if (viewport) viewport.style.transform = `translate(${cameraShiftX}px, ${cameraShiftY}px)`;
+
+        SoundFX.playSnap();
+
+        const colStar = document.getElementById(`collectible_${currentX}_${currentY}`);
+        if (colStar) {
+          colStar.classList.add('transition-all', 'duration-300', 'scale-150', 'opacity-0');
+          SoundFX.playPop();
+        }
+
+        await new Promise(r => setTimeout(r, 650));
+      }
+
+      const isCorrect = (currentX === this.currentMission.target.x && currentY === this.currentMission.target.y);
+
+      if (isCorrect) {
+        this.handleMissionSuccess();
+      } else {
+        this.handleMissionTryAgain();
+      }
+    },
+
+    handleMissionSuccess() {
+      SoundFX.playCelebration();
+      this.score += 10;
+      this.correctCount++;
+      this.updateScoreBadge();
+
+      this.showMascotSpeech(I18N.data[I18N.current].greatJob, true);
+
+      const planetEl = document.getElementById('targetPlanetElement');
+      if (planetEl) {
+        planetEl.classList.add('glow-anim');
+      }
+
+      setTimeout(() => {
+        this.hideMascotSpeech();
+        this.nextMission();
+      }, 1600);
+    },
+
+    handleMissionTryAgain() {
+      SoundFX.playTryAgain();
+      this.showMascotSpeech(I18N.data[I18N.current].tryAgain, false);
+
+      setTimeout(() => {
+        this.hideMascotSpeech();
+        const originX = 110;
+        const originY = 90;
+        const cellW = 140;
+        const cellH = 95;
+        const startPixelX = originX + (this.currentMission.start.x * cellW);
+        const startPixelY = originY + (this.currentMission.start.y * cellH);
+        const rocketActor = document.getElementById('rocketActor');
+        const viewport = document.getElementById('worldViewport');
+
+        if (rocketActor) rocketActor.setAttribute('transform', `translate(${startPixelX - 40}, ${startPixelY - 40}) rotate(0)`);
+        if (viewport) viewport.style.transform = 'translate(0px, 0px)';
+
+        const tray = document.getElementById('codingTray');
+        if (tray) tray.classList.remove('tray-hidden');
+        this.isExecuting = false;
+      }, 1400);
+    },
+
+    showMascotSpeech(text, isSuccess) {
+      const overlay = document.getElementById('mascotSpeechOverlay');
+      const bubbleText = document.getElementById('mascotSpeechText');
+      const bubbleIcon = document.getElementById('mascotBubbleIcon');
+
+      if (!overlay || !bubbleText) return;
+      bubbleText.innerText = text;
+
+      if (bubbleIcon) {
+        bubbleIcon.innerHTML = isSuccess 
+          ? `<svg viewBox="0 0 24 24" class="w-8 h-8 fill-amber-400"><polygon points="12,2 15,9 22,9 17,14 19,21 12,17 5,21 7,14 2,9 9,9"/></svg>`
+          : `<svg viewBox="0 0 24 24" class="w-8 h-8 fill-cyan-400"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>`;
+      }
+
+      overlay.classList.remove('opacity-0', 'pointer-events-none');
+    },
+
+    hideMascotSpeech() {
+      const overlay = document.getElementById('mascotSpeechOverlay');
+      if (overlay) overlay.classList.add('opacity-0', 'pointer-events-none');
+    },
+
+    updateScoreBadge() {
+      const val = document.getElementById('headerScoreVal');
+      if (val) val.innerText = this.score;
+    },
+
+    finishSession() {
+      SoundFX.playCelebration();
+      const resScore = document.getElementById('resultScore');
+      const resCorrect = document.getElementById('resultCorrect');
+      const resAcc = document.getElementById('resultAccuracy');
+
+      if (resScore) resScore.innerText = this.score;
+      if (resCorrect) resCorrect.innerText = this.correctCount;
+      const acc = this.currentQuestionIndex > 0 
+        ? Math.round((this.correctCount / this.currentQuestionIndex) * 100) 
+        : 100;
+      if (resAcc) resAcc.innerText = `${acc}%`;
+
+      ProfileManager.recordSession(this.score, this.currentQuestionIndex, this.correctCount);
+      UI.showScreen('screenResult');
+    },
+
+    playAgain() {
+      this.currentQuestionIndex = 0;
+      this.score = 0;
+      this.correctCount = 0;
+      this.updateScoreBadge();
+      this.nextMission();
+    }
+  };
+
+  // Launch on window load
+  window.addEventListener('DOMContentLoaded', () => {
+    Game.init();
+  });
+  </script>
+</body>
+</html>
